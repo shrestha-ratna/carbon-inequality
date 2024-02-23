@@ -1,26 +1,22 @@
-# Beyond Reconstruction: What Leads to Satisfaction in Post-Disaster Recovery?
+﻿# Red versus blue states: inequality in energy-related CO2 emissions in the United States
 
-**Ratna K. Shrestha** (Vancouver School of Economics, University of British Columbia)<br/>
-**Raunak Shrestha** (Department of Radiation Oncology, University of California San Francisco)<br/>
-**Sara Shneiderman** (Department of Anthropology and School of Public Policy &amp; Global Affairs, University of British Columbia)<br/>
-**Jeevan Baniya** (Social Science Baha, Nepal)<br/>
+
+**Ratna K. Shrestha** (Vancouver School of Economics, University of British Columbia) <br/>
 
 
 ### Abstract
-> People derive satisfaction not only from tangible outcomes but also from the way such outcomes are realized. Using the data collected in the aftermath of Nepal’s 7.8 Mw earthquake, we put this notion to a test. We find that households’ subjective happiness (in 1 to 10 ordered scale) depends not on the extent of physical reconstruction of damaged houses per se, but rather freedom of choice in the reconstruction process. However, too much freedom beyond certain thresholds may decrease happiness. We also find that happiness inequality is worse in overall less happy ethnic groups and that between-ethnic-group inequality is higher than within-ethnic-group inequality; however, the reverse is true in the case of gender. These findings may underscore the importance of freedom and ethnic or gender-specific policies in promoting well-being in post-disaster recovery.
+> The partisan divide over climate change issues has been a major hurdle in implementing a unified climate policy in the United States. Here, we apply the Shapley value decomposition approach to measure the partisan divide in state-level energy-related per capita CO2 emissions. We find that the population-weighted (unweighted) inequality between red and blue states as a share of overall inequality between states, measured by the Gini index, increased from 37.30% (38.24%) in 1997 to 57.20% (58.21%) in 2021. Throughout the period, this divide by political color was more pronounced than that by many other dimensions such as income, climatic condition and geographic location. Driven primarily by the disparity in coal use in electricity production, the partisan gap worsened more in 2021 than in 2020. While the partisan divide worsened, the carbon distribution changed from top to bottom concentrated between 1997 and 2019, just to be reversed in 2020 and 2021.
 
 
 #### Code availability
-R-codes used for data analysis is available at [https://raunakms.github.io/happiness_reconstruction](https://raunakms.github.io/happiness_reconstruction) and can be downloaded from [https://github.com/raunakms/diversity_cooking_fuel](https://github.com/raunakms/happiness_reconstruction)
-<br/><br/>
+R-codes used for data analysis is available at [https://github.com/shrestha-ratna/carbon-inequality](<br/><br/>
 
 #### Citation
-Shrestha, RK, Shrestha, R, Shneiderman S, and Baniya J. **Beyond Reconstruction: What Leads to Satisfaction in Post-Disaster Recovery?**. 2021. (*submitted*) 
+Shrestha, Ratna K, **Red versus blue states: inequality in energy-related CO2 emissions in the United States** 2024. (*submitted*) 
 <br/><br/>
 
 #### Corresponding author
 Ratna K. Shrestha, PhD <br/>
-Vancouver School of Economics, <br/>
 University of British Columbia, <br/>
 6000 Iona Drive, Vancouver, BC, Canada V6T 1L4 <br/>
 E-mail: ratna [dot] shrestha [at] ubc.ca<br/>
