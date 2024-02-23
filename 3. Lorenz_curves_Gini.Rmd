@@ -1,0 +1,688 @@
+---
+title: "Lorenz Curves"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'Gini_Lorenz.html'))})
+---
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("tidyr")
+library("dineq")
+library("reldist")
+library("gglorenz")
+library("ggrepel")
+library("stringr")
+library("dplyr")
+library("ggplot2")
+library("gridExtra")
+library("knitr")
+library("tidyverse")
+library("magrittr")
+library("foreign")
+library("AER")
+library("ggpubr")
+library("devtools")
+library("cowplot")
+library("ineq")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
+dir.plot <- file.path(dir.wrk, "dataset/plots_descriptive")
+```
+#### Define Files and load data
+```{r tidy=TRUE}
+file.dat <- file.path(dir.outdata, "dat_ineq.csv")
+dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
+```
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE, tidy=TRUE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+#### Gini index overall and by fuel type
+```{r tidy=TRUE}
+gini_fuel <- dat_p %>% group_by(Year) %>% summarise(un_gini = gini(pc_CO2), wt_gini = gini.wtd(pc_CO2, pop_mi), gini_c=gini(pc_coal), wtgini_c=gini.wtd(pc_coal, pop_mi), gini_p=gini(pc_petro), wtgini_p =gini.wtd(pc_petro, pop_mi),gini_g=gini(pc_gas), wtgini_g=gini.wtd(pc_gas, pop_mi))
+
+## Preparation for plot--
+gini_fuel <- reshape2::melt(gini_fuel, id.vars="Year")
+gini_fuel$Group <- ifelse((gini_fuel$variable == "un_gini") | (gini_fuel$variable == "wt_gini"), "Overall", 
+                          ifelse((gini_fuel$variable == "gini_c") | (gini_fuel$variable == "wtgini_c"), "Coal", 
+                          ifelse((gini_fuel$variable == "gini_p") |(gini_fuel$variable == "wtgini_p"), 
+                          "Petroleum","Natural Gas")))
+
+gini_fuel$Weight <- ifelse((gini_fuel$variable == "un_gini")|(gini_fuel$variable == "gini_c") | 
+                           (gini_fuel$variable == "gini_p") | (gini_fuel$variable == "gini_g"), 
+                           "Unweighted", "Population Weighted")
+
+gini_fuel$Group <- factor(gini_fuel$Group, levels=c("Overall", "Coal","Natural Gas", "Petroleum"))
+gini_fuel$Weight <- factor(gini_fuel$Weight, levels=c("Unweighted","Population Weighted"))
+```
+</br></br>
+
+#### Plot
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+
+fuel1<-ggplot(gini_fuel, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
+  scale_colour_manual(values=c("black", "red", "green","blue")) +  
+  scale_linetype_manual(values=c("dotted","solid")) +
+  labs(x = "Year", y = "Per Capita CO2 Gini")+
+  scale_x_continuous(breaks=c(1997, 2001, 2005, 2009, 2013, 2017, 2019, 2021)) +
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0.1, 0.72), breaks = seq(0.1, 0.72, 0.1)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t=5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.text = element_text(size=7)) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.15, "lines"))+
+  guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
+  theme(legend.key.width = unit(0.5, 'cm'))+
+  theme(legend.key.height = unit(0.2, 'cm'))
+```
+</br>
+
+#### Gini index by sector
+```{r}
+gini_sector <- dat_p %>% group_by(Year) %>% 
+              summarise(gini_com=gini(pc_comm), wtgini_com=gini.wtd(pc_comm, pop_mi),
+              gini_res=gini(pc_res), wtgini_res =gini.wtd(pc_res, pop_mi),
+              gini_ind=gini(pc_ind), wtgini_ind=gini.wtd(pc_ind, pop_mi),
+              gini_elc=gini(pc_elec), wtgini_elc =gini.wtd(pc_elec, pop_mi),
+              gini_tra=gini(pc_trans), wtgini_tra=gini.wtd(pc_trans, pop_mi))
+
+gini_sector <- reshape2::melt(gini_sector, id.vars="Year")
+
+gini_sector$Group <- ifelse((gini_sector$variable == "gini_ind") |(gini_sector$variable == "wtgini_ind"), "Indust",
+                    ifelse((gini_sector$variable == "gini_elc") | (gini_sector$variable == "wtgini_elc"), "Electric",
+                    ifelse((gini_sector$variable == "gini_res") | (gini_sector$variable == "wtgini_res"), "Resident",
+                    ifelse((gini_sector$variable == "gini_tra") | (gini_sector$variable == "wtgini_tra"), "Trans", "Comm"))))
+
+gini_sector$Weight <- ifelse((gini_sector$variable == "gini_ind") | (gini_sector$variable == "gini_elc") | (gini_sector$variable == "gini_res")|(gini_sector$variable == "gini_com") | (gini_sector$variable == "gini_tra"),"Unweighted", "Population Weighted")
+
+gini_sector$Group <- factor(gini_sector$Group, levels=c("Indust", "Electric",  "Resident", "Comm", "Trans"))
+gini_sector$Weight <- factor(gini_sector$Weight, levels=c("Unweighted","Population Weighted"))
+```
+</br>
+
+#### Plot sector
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+sector1<-ggplot(gini_sector, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("red", "blue","green", "purple", "black")) +  
+  scale_linetype_manual(values=c("dotted","solid")) +
+  labs(x = "Year", y = "")+
+  scale_x_continuous(breaks=c(1997, 2001, 2005, 2009, 2013, 2017, 2019, 2021)) +
+  theme(text=element_text(size=8))+
+  #scale_x_continuous(breaks = seq(min(gini_sector$Year), max(gini_sector$Year), 1)) +
+  scale_y_continuous(limits = c(0.1, 0.6), breaks = seq(0.1, 0.6, 0.1)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom",legend.margin=margin(t=5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.text = element_text(size=7)) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.15, "lines"))+
+  guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
+  theme(legend.key.width = unit(0.4, 'cm'))+
+  theme(legend.key.height = unit(0.2, "cm"))
+```
+
+#### Plot Gini by fuel type and sector
+
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+fuel_sector_Gini <- ggarrange(fuel1, sector1, labels = c("a", "b"), hjust = -2, font.label = list(size = 8, color = "black", face = "bold"), ncol = 2, nrow = 1, legend = "bottom")
+fuel_sector_Gini
+file.plot <- file.path(dir.plot, "fuel_sector_Gini.png")
+png(file.plot, height=4, width=7, units="in", bg="white", res=300)
+fuel_sector_Gini
+dev.off()
+```
+
+### Lorenz Asymmetry Coefficient Calculations: CO2 and GDP
+#### Damgaard and Weiner: Describing Inequality in Plant Size or Fecundity, 2000. Ecology 81(4),1139-1142.
+
+```{r}
+lac_97_21 <- dat_p %>% filter(Year %in% c(1997, 2019, 2020, 2021))
+
+LAC_CO2 <- lac_97_21 %>% group_by(Year) %>%
+  summarise(wlac = round(Lasym(pc_CO2, pop_mi), 3), wgini_c=gini.wtd(pc_CO2, pop_mi))
+LAC_coal <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_coal = round(Lasym(pc_coal, pop_mi), 3), wgini_coal=gini.wtd(pc_coal, pop_mi))
+LAC_petro <-lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_petro = round(Lasym(pc_petro, pop_mi), 3), wgini_petro=gini.wtd(pc_petro, pop_mi))
+LAC_gas <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_gas = round(Lasym(pc_gas, pop_mi), 3), wgini_gas=gini.wtd(pc_gas, pop_mi))
+
+## Lorenz for pc_CO2
+dat_97 <- dat_p %>% filter(Year== 1997)
+dat_19 <- dat_p %>% filter(Year== 2019)
+dat_20 <- dat_p %>% filter(Year== 2020)
+dat_21 <- dat_p %>% filter(Year== 2021)
+```
+
+</br>
+
+#### Data preparation: 1997
+```{r}
+wc_97 <- dat_97 %>% arrange(pc_CO2)
+wc_97$one <- "1" 
+wc_97$one <-as.numeric(wc_97$one)
+wc_97$cum_unit = cumsum(wc_97$one*wc_97$pop_mi)/sum(wc_97$one*wc_97$pop_mi)  ## cum_unit ranked by per capita CO2
+wc_97$cum_co2 = cumsum(wc_97$pc_CO2*wc_97$pop_mi)/sum(wc_97$pc_CO2*wc_97$pop_mi) ## cumulative per capita CO2
+
+coal_97 <- dat_97 %>% arrange(pc_coal)
+coal_97$one <- "1" 
+coal_97$one <-as.numeric(coal_97$one)
+coal_97$cum_unit = cumsum(coal_97$one*coal_97$pop_mi)/sum(coal_97$one*coal_97$pop_mi) 
+coal_97$cum_coal = cumsum(coal_97$pc_coal*coal_97$pop_mi)/sum(coal_97$pc_coal*coal_97$pop_mi)
+
+petro_97 <- dat_97 %>% arrange(pc_petro)
+petro_97$one <- "1" 
+petro_97$one <-as.numeric(petro_97$one)
+petro_97$cum_unit = cumsum(petro_97$one*petro_97$pop_mi)/sum(petro_97$one*petro_97$pop_mi)
+petro_97$cum_petro = cumsum(petro_97$pc_petro*petro_97$pop_mi)/sum(petro_97$pc_petro*petro_97$pop_mi)
+
+gas_97 <- dat_97 %>% arrange(pc_gas)
+gas_97$one <- "1" 
+gas_97$one <-as.numeric(gas_97$one)
+gas_97$cum_unit = cumsum(gas_97$one*gas_97$pop_mi)/sum(gas_97$one*gas_97$pop_mi)
+gas_97$cum_gas = cumsum(gas_97$pc_gas*gas_97$pop_mi)/sum(gas_97$pc_gas*gas_97$pop_mi)
+
+```
+</br>
+
+#### plot 1997
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Overall (0.244, 1.11)" = "green", "Coal (0.462, 0.79)"= "red", "Petroleum (0.162, 1.32)" = "black", 
+             "Natural Gas (0.327, 1.18)" = "blue")
+
+fuel97 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=wc_97$cum_unit, y=wc_97$cum_co2, color = "Overall (0.244, 1.11)"), linetype= "dotted")+
+  geom_line(aes(x=coal_97$cum_unit, y=coal_97$cum_coal, color = "Coal (0.462, 0.79)"))+
+  geom_line(aes(x=petro_97$cum_unit, y=petro_97$cum_petro, color = "Petroleum (0.162, 1.32)"))+
+  geom_line(aes(x=gas_97$cum_unit, y=gas_97$cum_gas, color = "Natural Gas (0.327, 1.18)"))+
+  labs(x = "", y = "")+
+  #scale_color_hue(name = "      1997", direction = 1)+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  #theme(axis.title.x = element_text(size=8))+
+  theme(legend.position= c(0.42, 0.88))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.3, "cm"))+
+  theme(axis.text.y=element_text(size=6))+
+  theme(axis.text.x=element_text(size=6))+
+  theme(plot.margin = unit(c(5.5, 1.5, 5.5, 1.5), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(2, 4, 1, 3)])
+```
+</br>
+
+#### Data preparation 2019
+```{r}
+wc_19 <- dat_19 %>% arrange(pc_CO2)
+wc_19$one <- "1" 
+wc_19$one <-as.numeric(wc_19$one)
+wc_19$cum_unit = cumsum(wc_19$one*wc_19$pop_mi)/sum(wc_19$one*wc_19$pop_mi)  ## cum_unit ranked by per capita CO2
+wc_19$cum_co2 = cumsum(wc_19$pc_CO2*wc_19$pop_mi)/sum(wc_19$pc_CO2*wc_19$pop_mi)  ## cumulative per capita CO2
+
+coal_19 <- dat_19 %>% arrange(pc_coal)
+coal_19$one <- "1" 
+coal_19$one <-as.numeric(coal_19$one)
+coal_19$cum_unit = cumsum(coal_19$one*coal_19$pop_mi)/sum(coal_19$one*coal_19$pop_mi)  ## cum_unit ranked by per capita CO2
+coal_19$cum_coal = cumsum(coal_19$pc_coal*coal_19$pop_mi)/sum(coal_19$pc_coal*coal_19$pop_mi) ## cumulative per capita CO2
+
+petro_19 <- dat_19 %>% arrange(pc_petro)
+petro_19$one <- "1" 
+petro_19$one <-as.numeric(petro_19$one)
+petro_19$cum_unit = cumsum(petro_19$one*petro_19$pop_mi)/sum(petro_19$one*petro_19$pop_mi)  ## cum_unit ranked by per capita gdp
+petro_19$cum_petro = cumsum(petro_19$pc_petro*petro_19$pop_mi)/sum(petro_19$pc_petro*petro_19$pop_mi) ## cumulative per capita gdp
+
+gas_19 <- dat_19 %>% arrange(pc_gas)
+gas_19$one <- "1" 
+gas_19$one <-as.numeric(gas_19$one)
+gas_19$cum_unit = cumsum(gas_19$one*gas_19$pop_mi)/sum(gas_19$one*gas_19$pop_mi)  ## cum_unit ranked by per capita CO2
+gas_19$cum_gas = cumsum(gas_19$pc_gas*gas_19$pop_mi)/sum(gas_19$pc_gas*gas_19$pop_mi)   ## cumulative per capita CO2
+```
+</br>
+
+#### Plot 2019
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Overall (0.238, 0.92)" = "green", "Coal (0.570, 0.90)"= "red", "Petroleum (0.149, 1.32)" = "black", 
+             "Natural Gas (0.265, 1.12)" = "blue")
+
+fuel19 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=wc_19$cum_unit, y=wc_19$cum_co2, color = "Overall (0.238, 0.92)"), linetype = "dotted")+
+  geom_line(aes(x=coal_19$cum_unit, y=coal_19$cum_coal, color = "Coal (0.570, 0.90)"))+
+  geom_line(aes(x=petro_19$cum_unit, y=petro_19$cum_petro, color = "Petroleum (0.149, 1.32)"))+
+  geom_line(aes(x=gas_19$cum_unit, y=gas_19$cum_gas, color = "Natural Gas (0.265, 1.12)"))+
+  labs(x = "", y = "")+
+  #scale_color_hue(name = "      2019", direction = 1)+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  #theme(axis.title.x = element_text(size=8))+
+  theme(legend.position= c(0.40, 0.88))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.3, "cm"))+
+  theme(axis.text.x=element_text(size=6))+
+  theme(axis.text.y=element_blank())+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1.5, 5.5, 1.5), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(2, 4, 1, 3)])
+```
+</br>
+
+#### Data Preparation 2020
+```{r}
+wc_20 <- dat_20 %>% arrange(pc_CO2)
+wc_20$one <- "1" 
+wc_20$one <-as.numeric(wc_20$one)
+wc_20$cum_unit = cumsum(wc_20$one*wc_20$pop_mi)/sum(wc_20$one*wc_20$pop_mi)  
+wc_20$cum_co2 = cumsum(wc_20$pc_CO2*wc_20$pop_mi)/sum(wc_20$pc_CO2*wc_20$pop_mi)  
+
+coal_20 <- dat_20 %>% arrange(pc_coal)
+coal_20$one <- "1" 
+coal_20$one <-as.numeric(coal_20$one)
+coal_20$cum_unit = cumsum(coal_20$one*coal_20$pop_mi)/sum(coal_20$one*coal_20$pop_mi)  
+coal_20$cum_coal = cumsum(coal_20$pc_coal*coal_20$pop_mi)/sum(coal_20$pc_coal*coal_20$pop_mi) 
+
+petro_20 <- dat_20 %>% arrange(pc_petro)
+petro_20$one <- "1" 
+petro_20$one <-as.numeric(petro_20$one)
+petro_20$cum_unit = cumsum(petro_20$one*petro_20$pop_mi)/sum(petro_20$one*petro_20$pop_mi)  
+petro_20$cum_petro = cumsum(petro_20$pc_petro*petro_20$pop_mi)/sum(petro_20$pc_petro*petro_20$pop_mi)  
+
+gas_20 <- dat_20 %>% arrange(pc_gas)
+gas_20$one <- "1" 
+gas_20$one <-as.numeric(gas_20$one)
+gas_20$cum_unit = cumsum(gas_20$one*gas_20$pop_mi)/sum(gas_20$one*gas_20$pop_mi)  
+gas_20$cum_gas = cumsum(gas_20$pc_gas*gas_20$pop_mi)/sum(gas_20$pc_gas*gas_20$pop_mi)
+```
+</br>
+
+#### plot 2020
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Overall (0.255, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
+             "Natural Gas (0.271, 1.08)" = "blue")
+
+fuel20 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=wc_20$cum_unit, y=wc_20$cum_co2, color = "Overall (0.255, 1.11)"), linetype = "dotted")+
+  geom_line(aes(x=coal_20$cum_unit, y=coal_20$cum_coal, color = "Coal (0.595, 0.76)"))+
+  geom_line(aes(x=petro_20$cum_unit, y=petro_20$cum_petro, color = "Petroleum (0.175, 1.22)"))+
+  geom_line(aes(x=gas_20$cum_unit, y=gas_20$cum_gas, color = "Natural Gas (0.271, 1.08)"))+
+  labs(x = "", y = "")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.40, 0.88))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.3, "cm"))+
+  theme(axis.text.y=element_blank())+
+  theme(axis.text.x=element_text(size=6))+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1.5, 5.5, 1.5), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(2, 4, 1, 3)])
+```
+</br>
+
+#### Data Preparation 2021
+```{r}
+wc_21 <- dat_21 %>% arrange(pc_CO2)
+wc_21$one <- "1" 
+wc_21$one <-as.numeric(wc_21$one)
+wc_21$cum_unit = cumsum(wc_21$one*wc_21$pop_mi)/sum(wc_21$one*wc_21$pop_mi)
+wc_21$cum_co2 = cumsum(wc_21$pc_CO2*wc_21$pop_mi)/sum(wc_21$pc_CO2*wc_21$pop_mi)
+
+coal_21 <- dat_21 %>% arrange(pc_coal)
+coal_21$one <- "1" 
+coal_21$one <-as.numeric(coal_21$one)
+coal_21$cum_unit = cumsum(coal_21$one*coal_21$pop_mi)/sum(coal_21$one*coal_21$pop_mi) 
+coal_21$cum_coal = cumsum(coal_21$pc_coal*coal_21$pop_mi)/sum(coal_21$pc_coal*coal_21$pop_mi)
+
+petro_21 <- dat_21 %>% arrange(pc_petro)
+petro_21$one <- "1" 
+petro_21$one <-as.numeric(petro_21$one)
+petro_21$cum_unit = cumsum(petro_21$one*petro_21$pop_mi)/sum(petro_21$one*petro_21$pop_mi)
+petro_21$cum_petro = cumsum(petro_21$pc_petro*petro_21$pop_mi)/sum(petro_21$pc_petro*petro_21$pop_mi)
+
+gas_21 <- dat_21 %>% arrange(pc_gas)
+gas_21$one <- "1" 
+gas_21$one <-as.numeric(gas_21$one)
+gas_21$cum_unit = cumsum(gas_21$one*gas_21$pop_mi)/sum(gas_21$one*gas_21$pop_mi)
+gas_21$cum_gas = cumsum(gas_21$pc_gas*gas_21$pop_mi)/sum(gas_21$pc_gas*gas_21$pop_mi)
+```
+</br>
+
+#### plot 2021
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Overall (0.250, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
+             "Natural Gas (0.271, 1.08)" = "blue")
+
+fuel21 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=wc_21$cum_unit, y=wc_21$cum_co2, color = "Overall (0.250, 1.11)"), linetype = "dotted")+
+  geom_line(aes(x=coal_21$cum_unit, y=coal_21$cum_coal, color = "Coal (0.595, 0.76)"))+
+  geom_line(aes(x=petro_21$cum_unit, y=petro_21$cum_petro, color = "Petroleum (0.175, 1.22)"))+
+  geom_line(aes(x=gas_21$cum_unit, y=gas_21$cum_gas, color = "Natural Gas (0.271, 1.08)"))+
+  labs(x = "", y = "")+
+  #scale_color_hue(name = "      2021", direction = 1)+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.40, 0.88))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.3, "cm"))+
+  theme(axis.text.y=element_blank())+
+  theme(axis.text.x=element_text(size=6))+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1.5, 5.5, 1.5), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(2, 4, 1, 3)])
+```
+
+</br>
+
+#### output plot: fuel type
+```{r fig.height = 2.5, fig.width = 7, fig.align = "center"}
+fuel_lorenz <- plot_grid(fuel97, NULL, fuel19, NULL, fuel20, NULL, fuel21, nrow=1, ncol=7, labels = "a", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 0, 1, 0, 1, 0, 1), align = "hv")
+
+fuel_lorenz
+```
+
+</br>
+
+### LAC and Gini by SECTOR.
+```{r}
+lac_trans <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_trans = round(Lasym(pc_trans, pop_mi), 3), gini_tra=gini.wtd(pc_trans, pop_mi))
+
+lac_comm <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_comm = round(Lasym(pc_comm, pop_mi), 3), gini_com=gini.wtd(pc_comm, pop_mi))
+
+lac_res <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_res = round(Lasym(pc_res, pop_mi), 3), gini_res=gini.wtd(pc_res, pop_mi))
+
+lac_elec <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_elec = round(Lasym(pc_elec, pop_mi), 3), gini_elc=gini.wtd(pc_elec, pop_mi))
+
+lac_ind <- lac_97_21 %>% group_by(Year) %>%
+  summarise(lac_ind = round(Lasym(pc_ind, pop_mi), 3), gini_ind=gini.wtd(pc_ind, pop_mi))
+```
+
+</br>
+
+### Data Prep for Lorenz curves by SECTOR
+```{r}
+### 1997
+ind_97 <- dat_97 %>% arrange(pc_ind)
+ind_97$one <- "1" 
+ind_97$one <-as.numeric(ind_97$one)
+ind_97$cum_unit = cumsum(ind_97$one*ind_97$pop_mi)/sum(ind_97$one*ind_97$pop_mi)  ## cum_unit ranked by per capita CO2
+ind_97$cum_ind = cumsum(ind_97$pc_ind*ind_97$pop_mi)/sum(ind_97$pc_ind*ind_97$pop_mi) ## cumulative per capita CO2
+
+elc_97 <- dat_97 %>% arrange(pc_elec)
+elc_97$one <- "1" 
+elc_97$one <-as.numeric(elc_97$one)
+elc_97$cum_unit = cumsum(elc_97$one*elc_97$pop_mi)/sum(elc_97$one*elc_97$pop_mi) 
+elc_97$cum_elc = cumsum(elc_97$pc_elec*elc_97$pop_mi)/sum(elc_97$pc_elec*elc_97$pop_mi) 
+
+tran_97 <- dat_97 %>% arrange(pc_trans)
+tran_97$one <- "1" 
+tran_97$one <-as.numeric(tran_97$one)
+tran_97$cum_unit = cumsum(tran_97$one*tran_97$pop_mi)/sum(tran_97$one*tran_97$pop_mi)  
+tran_97$cum_tran = cumsum(tran_97$pc_trans*tran_97$pop_mi)/sum(tran_97$pc_trans*tran_97$pop_mi) 
+
+res_97 <- dat_97 %>% arrange(pc_res)
+res_97$one <- "1" 
+res_97$one <-as.numeric(res_97$one)
+res_97$cum_unit = cumsum(res_97$one*res_97$pop_mi)/sum(res_97$one*res_97$pop_mi) 
+res_97$cum_res = cumsum(res_97$pc_res*res_97$pop_mi)/sum(res_97$pc_res*res_97$pop_mi) 
+
+com_97 <- dat_97 %>% arrange(pc_comm)
+com_97$one <- "1" 
+com_97$one <-as.numeric(com_97$one)
+com_97$cum_unit = cumsum(com_97$one*com_97$pop_mi)/sum(com_97$one*com_97$pop_mi) 
+com_97$cum_com = cumsum(com_97$pc_comm*com_97$pop_mi)/sum(com_97$pc_comm*com_97$pop_mi) 
+
+```
+</br>
+
+#### plot 1997
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Industrial (0.447, 1.16)" = "green", "Electricity (0.379, 0.83)" = "blue", "Residential (0.294, 0.80)" = "orange", "Commercial (0.258, 0.84)" = "red", "Transport (0.135, 1.12)" = "black")
+
+sector97 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=ind_97$cum_unit, y=ind_97$cum_ind, color = "Industrial (0.447, 1.16)"))+
+  geom_line(aes(x=elc_97$cum_unit, y=elc_97$cum_elc, color = "Electricity (0.379, 0.83)"))+
+    geom_line(aes(x=res_97$cum_unit, y=res_97$cum_res, color = "Residential (0.294, 0.80)"))+
+  geom_line(aes(x=com_97$cum_unit, y=com_97$cum_com, color = "Commercial (0.258, 0.84)"))+
+  geom_line(aes(x=tran_97$cum_unit, y=tran_97$cum_tran, color = "Transport (0.135, 1.12)"))+
+  labs(x = "1997", y = "")+
+  #scale_color_hue(name = "      1997", direction = 1)+
+  theme(axis.title.x = element_text(size=8))+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.4, 0.85))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.32, "cm"))+
+  theme(axis.text=element_text(size=6))+
+  theme(plot.margin = unit(c(5.5, 1, 5.5, 1), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(1, 2, 3, 4, 5)])
+```
+
+</br>
+
+#### Data preparation 2019
+```{r}
+ind_19 <- dat_19 %>% arrange(pc_ind)
+ind_19$one <- "1" 
+ind_19$one <-as.numeric(ind_19$one)
+ind_19$cum_unit = cumsum(ind_19$one*ind_19$pop_mi)/sum(ind_19$one*ind_19$pop_mi)  ## cum_unit ranked by per capita CO2
+ind_19$cum_ind = cumsum(ind_19$pc_ind*ind_19$pop_mi)/sum(ind_19$pc_ind*ind_19$pop_mi)      ## cumulative per capita CO2
+
+elc_19 <- dat_19 %>% arrange(pc_elec)
+elc_19$one <- "1" 
+elc_19$one <-as.numeric(elc_19$one)
+elc_19$cum_unit = cumsum(elc_19$one*elc_19$pop_mi)/sum(elc_19$one*elc_19$pop_mi)  ## cum_unit ranked by per capita gdp
+elc_19$cum_elc = cumsum(elc_19$pc_elec*elc_19$pop_mi)/sum(elc_19$pc_elec*elc_19$pop_mi)      ## cumulative per capita gdp
+
+tran_19 <- dat_19 %>% arrange(pc_trans)
+tran_19$one <- "1" 
+tran_19$one <-as.numeric(tran_19$one)
+tran_19$cum_unit = cumsum(tran_19$one*tran_19$pop_mi)/sum(tran_19$one*tran_19$pop_mi)
+tran_19$cum_tran = cumsum(tran_19$pc_trans*tran_19$pop_mi)/sum(tran_19$pc_trans*tran_19$pop_mi)
+
+res_19 <- dat_19 %>% arrange(pc_res)
+res_19$one <- "1" 
+res_19$one <-as.numeric(res_19$one)
+res_19$cum_unit = cumsum(res_19$one*res_19$pop_mi)/sum(res_19$one*res_19$pop_mi) 
+res_19$cum_res = cumsum(res_19$pc_res*res_19$pop_mi)/sum(res_19$pc_res*res_19$pop_mi)  
+
+com_19 <- dat_19 %>% arrange(pc_comm)
+com_19$one <- "1" 
+com_19$one <-as.numeric(com_19$one)
+com_19$cum_unit = cumsum(com_19$one*com_19$pop_mi)/sum(com_19$one*com_19$pop_mi)  
+com_19$cum_com = cumsum(com_19$pc_comm*com_19$pop_mi)/sum(com_19$pc_comm*com_19$pop_mi)  
+
+```
+</br>
+
+#### plot 2019
+```{r fig.height = 2, fig.width = 5, fig.align = "center"}
+colors <- c("Industrial (0.511, 0.99)" = "green", "Electricity (0.394, 0.89)" = "blue", "Residential (0.339, 0.86)" = "orange", "Commercial (0.238, 0.88)" = "red", "Transport (0.108, 1.15)" = "black")
+
+
+sector19 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=ind_19$cum_unit, y=ind_19$cum_ind, color = "Industrial (0.511, 0.99)"))+
+  geom_line(aes(x=elc_19$cum_unit, y=elc_19$cum_elc, color = "Electricity (0.394, 0.89)"))+
+    geom_line(aes(x=res_19$cum_unit, y=res_19$cum_res, color = "Residential (0.339, 0.86)"))+
+  geom_line(aes(x=com_19$cum_unit, y=com_19$cum_com, color = "Commercial (0.238, 0.88)"))+
+  geom_line(aes(x=tran_19$cum_unit, y=tran_19$cum_tran, color = "Transport (0.108, 1.15)"))+
+  labs(x = "2019", y = "")+
+  #scale_color_hue(name = "      2019", direction = 1)+
+  theme(axis.title.x = element_text(size=8))+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.38, 0.85))+
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.32, "cm"))+
+  theme(axis.text.y = element_blank())+
+  theme(axis.text=element_text(size=6))+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1, 5.5, 1), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(1, 2, 3, 4, 5)])
+```
+</br>
+
+#### Data preparation 2020
+```{r}
+ind_20 <- dat_20 %>% arrange(pc_ind)
+ind_20$one <- "1" 
+ind_20$one <-as.numeric(ind_20$one)
+ind_20$cum_unit = cumsum(ind_20$one*ind_20$pop_mi)/sum(ind_20$one*ind_20$pop_mi)  ## cum_unit ranked by per capita CO2
+ind_20$cum_ind = cumsum(ind_20$pc_ind*ind_20$pop_mi)/sum(ind_20$pc_ind*ind_20$pop_mi)      ## cumulative per capita CO2
+
+elc_20 <- dat_20 %>% arrange(pc_elec)
+elc_20$one <- "1" 
+elc_20$one <-as.numeric(elc_20$one)
+elc_20$cum_unit = cumsum(elc_20$one*elc_20$pop_mi)/sum(elc_20$one*elc_20$pop_mi)  ## cum_unit ranked by per capita gdp
+elc_20$cum_elc = cumsum(elc_20$pc_elec*elc_20$pop_mi)/sum(elc_20$pc_elec*elc_20$pop_mi)      ## cumulative per capita gdp
+
+tran_20 <- dat_20 %>% arrange(pc_trans)
+tran_20$one <- "1" 
+tran_20$one <-as.numeric(tran_20$one)
+tran_20$cum_unit = cumsum(tran_20$one*tran_20$pop_mi)/sum(tran_20$one*tran_20$pop_mi) 
+tran_20$cum_tran = cumsum(tran_20$pc_trans*tran_20$pop_mi)/sum(tran_20$pc_trans*tran_20$pop_mi)
+
+res_20 <- dat_20 %>% arrange(pc_res)
+res_20$one <- "1" 
+res_20$one <-as.numeric(res_20$one)
+res_20$cum_unit = cumsum(res_20$one*res_20$pop_mi)/sum(res_20$one*res_20$pop_mi) 
+res_20$cum_res = cumsum(res_20$pc_res*res_20$pop_mi)/sum(res_20$pc_res*res_20$pop_mi) 
+
+com_20 <- dat_20 %>% arrange(pc_comm)
+com_20$one <- "1" 
+com_20$one <-as.numeric(com_20$one)
+com_20$cum_unit = cumsum(com_20$one*com_20$pop_mi)/sum(com_20$one*com_20$pop_mi) 
+com_20$cum_com = cumsum(com_20$pc_comm*com_20$pop_mi)/sum(com_20$pc_comm*com_20$pop_mi)  
+```
+</br>
+
+#### plot 2020
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Industrial (0.511, 1.02)" = "green", "Electricity (0.392, 0.87)" = "blue", "Residential (0.329, 0.88)" = "orange", "Commercial (0.230, 0.87)" = "red", "Transport (0.138, 1.17)" = "black")
+
+sector20 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=ind_20$cum_unit, y=ind_20$cum_ind, color = "Industrial (0.511, 1.02)"))+
+  geom_line(aes(x=elc_20$cum_unit, y=elc_20$cum_elc, color = "Electricity (0.392, 0.87)"))+
+  geom_line(aes(x=res_20$cum_unit, y=res_20$cum_res, color = "Residential (0.329, 0.88)"))+
+  geom_line(aes(x=com_20$cum_unit, y=com_20$cum_com, color = "Commercial (0.230, 0.87)"))+
+  geom_line(aes(x=tran_20$cum_unit, y=tran_20$cum_tran, color = "Transport (0.138, 1.17)"))+
+  labs(x = "2020", y = "")+
+  #scale_color_hue(name = "      2020", direction = 1)+
+  theme(axis.title.x = element_text(size=8))+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.38, 0.85)) +
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.32, "cm"))+
+  theme(axis.text.y = element_blank()) +
+  theme(axis.text=element_text(size=6))+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1, 5.5, 1), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(1, 2, 3, 4, 5)])
+```
+#### Data preparation 2021
+```{r}
+ind_21 <- dat_21 %>% arrange(pc_ind)
+ind_21$one <- "1" 
+ind_21$one <-as.numeric(ind_21$one)
+ind_21$cum_unit = cumsum(ind_21$one*ind_21$pop_mi)/sum(ind_21$one*ind_21$pop_mi) 
+ind_21$cum_ind = cumsum(ind_21$pc_ind*ind_21$pop_mi)/sum(ind_21$pc_ind*ind_21$pop_mi)
+
+elc_21 <- dat_21 %>% arrange(pc_elec)
+elc_21$one <- "1" 
+elc_21$one <-as.numeric(elc_21$one)
+elc_21$cum_unit = cumsum(elc_21$one*elc_21$pop_mi)/sum(elc_21$one*elc_21$pop_mi) 
+elc_21$cum_elc = cumsum(elc_21$pc_elec*elc_21$pop_mi)/sum(elc_21$pc_elec*elc_21$pop_mi) 
+
+tran_21 <- dat_21 %>% arrange(pc_trans)
+tran_21$one <- "1" 
+tran_21$one <-as.numeric(tran_21$one)
+tran_21$cum_unit = cumsum(tran_21$one*tran_21$pop_mi)/sum(tran_21$one*tran_21$pop_mi)
+tran_21$cum_tran = cumsum(tran_21$pc_trans*tran_21$pop_mi)/sum(tran_21$pc_trans*tran_21$pop_mi) 
+
+res_21 <- dat_21 %>% arrange(pc_res)
+res_21$one <- "1" 
+res_21$one <-as.numeric(res_21$one)
+res_21$cum_unit = cumsum(res_21$one*res_21$pop_mi)/sum(res_21$one*res_21$pop_mi)  
+res_21$cum_res = cumsum(res_21$pc_res*res_21$pop_mi)/sum(res_21$pc_res*res_21$pop_mi)
+
+com_21 <- dat_21 %>% arrange(pc_comm)
+com_21$one <- "1" 
+com_21$one <-as.numeric(com_21$one)
+com_21$cum_unit = cumsum(com_21$one*com_21$pop_mi)/sum(com_21$one*com_21$pop_mi)
+com_21$cum_com = cumsum(com_21$pc_comm*com_21$pop_mi)/sum(com_21$pc_comm*com_21$pop_mi) 
+```
+</br>
+
+#### plot 2021
+```{r fig.height = 3, fig.width = 5, fig.align = "center"}
+colors <- c("Industrial (0.517, 1.01)" = "green", "Electricity (0.395, 0.86)" = "blue", "Residential (0.326, 0.88)" = "orange", "Commercial (0.228, 0.87)" = "red", "Transport (0.132, 1.24)" = "black")
+
+
+sector21 <- ggplot() + 
+  geom_abline(color = "grey")+
+  geom_line(aes(x=ind_21$cum_unit, y=ind_21$cum_ind, color = "Industrial (0.517, 1.01)"))+
+  geom_line(aes(x=elc_21$cum_unit, y=elc_21$cum_elc, color = "Electricity (0.395, 0.86)"))+
+    geom_line(aes(x=res_21$cum_unit, y=res_21$cum_res, color = "Residential (0.326, 0.88)"))+
+  geom_line(aes(x=com_21$cum_unit, y=com_21$cum_com, color = "Commercial (0.228, 0.87)"))+
+  geom_line(aes(x=tran_21$cum_unit, y=tran_21$cum_tran, color = "Transport (0.132, 1.24)"))+
+  labs(x = "2021", y = "")+
+  theme(axis.title.x = element_text(size=8))+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 6))+
+  theme(legend.position= c(0.38, 0.85)) +
+  theme(legend.key.width = unit(0.3, 'cm'), legend.key.height = unit(0.32, "cm"))+
+  theme(axis.text.y = element_blank()) +
+  theme(axis.text=element_text(size=6))+
+  theme(axis.ticks.y = element_blank())+
+  theme(plot.margin = unit(c(5.5, 1, 5.5, 1), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(1, 2, 3, 4, 5)])
+```
+</br>
+
+#### output all
+```{r fig.height = 3.0, fig.width = 7, fig.align = "center"}
+sector_lorenz <- plot_grid(sector97, sector19, sector20, sector21, nrow=1, ncol=4, labels = "b", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 1, 1, 1), align = "hv")
+sector_lorenz
+```
+
+</br>
+
+#### plot by sector and fuel type
+```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
+
+sector_fuel_lorenz <-ggarrange(fuel_lorenz, sector_lorenz,  ncol=1, nrow=2)
+sector_fuel_lorenz <- annotate_figure(sector_fuel_lorenz, left =text_grob("Cumulative per capita CO2", vjust=3, rot =90, size =8), bottom = text_grob("Cumulative population (ranked by respective per capita CO2)", vjust=0, size =8))
+sector_fuel_lorenz
+```
+
+</br>
+
+### plot all (CO2/GDP, Sector and Fuel Type)
+```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
+
+file.plot <- file.path(dir.plot, "sector_fuel_lorenz.png")
+png(file.plot, height=5, width=7, units="in", bg= "white", res=300)
+sector_fuel_lorenz
+dev.off()
+```

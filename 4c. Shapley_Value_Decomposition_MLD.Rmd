@@ -1,0 +1,743 @@
+---
+title: "Shapley Decomposition MLD"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'Shapley MLD.html'))})
+---
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+
+library("stringr")
+library("dplyr")
+library("ggplot2")
+library("gridExtra")
+library("knitr")
+library("tidyverse")
+library("magrittr")
+library("foreign")
+library("AER")
+library("ggpubr")
+library("devtools")
+library("dineq")
+library("reldist")
+library("ineq")
+library("patchwork")
+library("hash")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
+dir.plot <- file.path(dir.wrk, "dataset/plots_decomp")
+```
+
+#### Define Files and load data
+```{r tidy=TRUE}
+file.dat <- file.path(dir.outdata, "dat_ineq.csv")
+dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
+```
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+### Mean Log Deviation
+#### Decomposition of MLD by Party
+```{r}
+by_year <- function(dat_p, yr) {
+  return(dat_p %>% filter(Year == yr))
+}
+
+pmld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Party, weights = ha[[i]]$pop_mi )
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+pmld_decomp <- pmld_co(dat_p)
+
+### Parse Hash fuction
+pmldco_decomp <- as.list(pmld_decomp)
+pml <- lapply(pmldco_decomp, function(x) x[1]$mld_decomp)
+pmldco_decomp <- do.call(rbind.data.frame, pml)
+pmldco_decomp <- cbind(Year=as.numeric(rownames(pmldco_decomp)), pmldco_decomp)
+rownames(pmldco_decomp) <- NULL
+pmldco_d <- pmldco_decomp[order(pmldco_decomp$Year, decreasing = FALSE),]
+pmldco_d <- pmldco_d %>% rename(pmld=mld_total, pwithin=mld_within, pbetween=mld_between)
+
+pumld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Party)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+pumld_decomp <- pumld_co(dat_p)
+
+### Parse Hash fuction
+pumldco_decomp <- as.list(pumld_decomp)
+puml <- lapply(pumldco_decomp, function(x) x[1]$mld_decomp)
+pumldco_decomp <- do.call(rbind.data.frame, puml)
+pumld_d <- cbind(Year=as.numeric(rownames(pumldco_decomp)), pumldco_decomp)
+rownames(pumld_d) <- NULL
+pumldco_d <- pumld_d[order(pumld_d$Year, decreasing = FALSE),]
+pumldco_d <- pumldco_d %>% rename(pumld=mld_total, puwithin=mld_within, pubetween=mld_between)
+```
+</br>
+
+#### Decomposition of MLD by Party
+```{r fig.height = 2, fig.width = 3, fig.align = "center"}
+
+decomp_pmld <-left_join(pmldco_d, pumldco_d)
+dmld <- reshape2::melt(decomp_pmld, id.vars="Year")
+
+dmld$Group <- ifelse((dmld$variable == "pmld") | (dmld$variable == "pumld"), "Overall",
+                     ifelse((dmld$variable == "pwithin") | (dmld$variable == "puwithin"), "Within group", "Between group"))
+
+
+dmld$Weight <- ifelse((dmld$variable == "pmld") | (dmld$variable == "pwithin") | 
+                          (dmld$variable == "pbetween"), "Population weighted", "Unweighted")
+
+dmld$Group <- factor(dmld$Group, levels=c("Overall","Within group", "Between group"))
+dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
+
+
+pmld <-ggplot(dmld, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "Red and blue states", y = "")+
+  theme(text=element_text(size=8))+
+  #scale_x_continuous(breaks = seq(min(dparty$Year), max(dparty$Year), 1)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.6, 'cm'))+
+  theme(legend.key.height = unit(0.5, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+#### Decomposition of MLD by LCV
+```{r}
+lmld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_LCV, weights = ha[[i]]$pop_mi )
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+lmld_decomp <- lmld_co(dat_p)
+
+### Parse Hash fuction
+lmldco_decomp <- as.list(lmld_decomp)
+lml <- lapply(lmldco_decomp, function(x) x[1]$mld_decomp)
+lmldco_decomp <- do.call(rbind.data.frame, lml)
+lmldco_decomp <- cbind(Year=as.numeric(rownames(lmldco_decomp)), lmldco_decomp)
+rownames(lmldco_decomp) <- NULL
+lmldco_d <- lmldco_decomp[order(lmldco_decomp$Year, decreasing = FALSE),]
+lmldco_d <- lmldco_d %>% rename(lmld=mld_total, lwithin=mld_within, lbetween=mld_between)
+
+lumld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_LCV)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+lumld_decomp <- lumld_co(dat_p)
+
+### Parse Hash fuction
+lumldco_decomp <- as.list(lumld_decomp)
+luml <- lapply(lumldco_decomp, function(x) x[1]$mld_decomp)
+lumldco_decomp <- do.call(rbind.data.frame, luml)
+lumld_d <- cbind(Year=as.numeric(rownames(lumldco_decomp)), lumldco_decomp)
+rownames(lumld_d) <- NULL
+lumldco_d <- lumld_d[order(lumld_d$Year, decreasing = FALSE),]
+lumldco_d <- lumldco_d %>% rename(lumld=mld_total, luwithin=mld_within, lubetween=mld_between)
+```
+</br>
+
+#### Decomposition of MLD by LCV
+```{r fig.height = 2, fig.width = 3, fig.align = "center"}
+
+decomp_lmld <-left_join(lmldco_d, lumldco_d)
+lmld <- reshape2::melt(decomp_lmld, id.vars="Year")
+
+lmld$Group <- ifelse((lmld$variable == "lmld") | (lmld$variable == "lumld"), "Overall",
+                     ifelse((lmld$variable == "lwithin") | (lmld$variable == "luwithin"), "Within group", "Between group"))
+
+
+lmld$Weight <- ifelse((lmld$variable == "lmld") | (lmld$variable == "lwithin") | 
+                          (lmld$variable == "lbetween"), "Population weighted", "Unweighted")
+
+lmld$Group <- factor(lmld$Group, levels=c("Overall","Within group", "Between group"))
+lmld$Weight <- factor(lmld$Weight, levels=c("Population weighted","Unweighted"))
+```
+
+
+#### Plot by LCV
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+
+lmld <-ggplot(lmld, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High-low LCV score", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.6, 'cm'))+
+  theme(legend.key.height = unit(0.5, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+#### Decomposition of MLD by Expenditure
+```{r}
+emld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_Expend, weights = ha[[i]]$pop_mi )
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+emld_decomp <- emld_co(dat_p)
+
+### Parse Hash fuction
+emldco_decomp <- as.list(emld_decomp)
+eml <- lapply(emldco_decomp, function(x) x[1]$mld_decomp)
+emldco_decomp <- do.call(rbind.data.frame, eml)
+emldco_decomp <- cbind(Year=as.numeric(rownames(emldco_decomp)), emldco_decomp)
+rownames(emldco_decomp) <- NULL
+emldco_d <- emldco_decomp[order(emldco_decomp$Year, decreasing = FALSE),]
+emldco_d <- emldco_d %>% rename(emld=mld_total, ewithin=mld_within, ebetween=mld_between)
+
+eumld_co <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_Expend)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+eumld_decomp <- eumld_co(dat_p)
+
+### Parse Hash fuction
+eumldco_decomp <- as.list(eumld_decomp)
+euml <- lapply(eumldco_decomp, function(x) x[1]$mld_decomp)
+eumldco_decomp <- do.call(rbind.data.frame, euml)
+eumld_d <- cbind(Year=as.numeric(rownames(eumldco_decomp)), eumldco_decomp)
+rownames(eumld_d) <- NULL
+eumldco_d <- eumld_d[order(eumld_d$Year, decreasing = FALSE),]
+eumldco_d <- eumldco_d %>% rename(eumld=mld_total, euwithin=mld_within, eubetween=mld_between)
+```
+</br>
+
+#### Decomposition of MLD by Expenditure
+```{r fig.height = 2, fig.width = 3, fig.align = "center"}
+
+decomp_emld <-left_join(emldco_d, eumldco_d)
+emld <- reshape2::melt(decomp_emld, id.vars="Year")
+
+emld$Group <- ifelse((emld$variable == "emld") | (emld$variable == "eumld"), "Overall",
+                     ifelse((emld$variable == "ewithin") | (emld$variable == "euwithin"), "Within group", "Between group"))
+
+
+emld$Weight <- ifelse((emld$variable == "emld") | (emld$variable == "ewithin") | 
+                          (emld$variable == "ebetween"), "Population weighted", "Unweighted")
+emld$Group <- factor(emld$Group, levels=c("Overall","Within group", "Between group"))
+emld$Weight <- factor(emld$Weight, levels=c("Population weighted","Unweighted"))
+```
+
+#### Plot by Expenditure
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+exmld <-ggplot(emld, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High-low energy expenditure", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.6, 'cm'))+
+  theme(legend.key.height = unit(0.5, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+</br>
+
+#### Plots by Party expenditure and LCV
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+
+mld_party_ex_lcv <- ggarrange(pmld, exmld, lmld, labels = c("a", "b", "c"), hjust = -2.0, 
+                                font.label = list(size = 8, color = "black", face = "bold"), 
+                                ncol = 3, nrow = 1, legend="none")
+mld_party_ex_lcv
+```
+
+
+#### Decomposition of MLD by income class
+```{r}
+mld_c <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <- by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$in_class, weights = ha[[i]]$pop_mi )
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+mld_decomp <- mld_c(dat_p)
+
+### Parse Hash fuction
+mldco_decomp <- as.list(mld_decomp)
+ml <- lapply(mldco_decomp, function(x) x[1]$mld_decomp)
+mldco_decomp <- do.call(rbind.data.frame, ml)
+mldco_decomp <- cbind(Year=as.numeric(rownames(mldco_decomp)), mldco_decomp)
+rownames(mldco_decomp) <- NULL
+mldco_d <- mldco_decomp[order(mldco_decomp$Year, decreasing = FALSE),]
+mldco_d <- mldco_d %>% rename(wmld=mld_total, wwithin=mld_within, wbetween=mld_between)
+
+umld_c <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$in_class)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+umld_decomp <- umld_c(dat_p)
+
+### Parse Hash fuction
+umldco_decomp <- as.list(umld_decomp)
+ml <- lapply(umldco_decomp, function(x) x[1]$mld_decomp)
+umldco_decomp <- do.call(rbind.data.frame, ml)
+umld_decomp <- cbind(Year=as.numeric(rownames(umldco_decomp)), umldco_decomp)
+rownames(umld_decomp) <- NULL
+umldco_d <- umld_decomp[order(umld_decomp$Year, decreasing = FALSE),]
+umldco_d <- umldco_d %>% rename(umld=mld_total, uwithin=mld_within, ubetween=mld_between)
+```
+</br>
+
+#### Decomposition of MLD by Income
+```{r}
+decomp_mld <- left_join(mldco_d, umldco_d)
+dmld <- reshape2::melt(decomp_mld, id.vars="Year")
+dmld$Group <- ifelse((dmld$variable == "wmld") | (dmld$variable == "umld"), "Overall",
+                     ifelse((dmld$variable == "wwithin") | (dmld$variable == "uwithin"), "Within group",
+                            "Between group"))
+
+
+dmld$Weight <- ifelse((dmld$variable == "wmld") | (dmld$variable == "wwithin") | 
+                          (dmld$variable == "wbetween"), "Population weighted", "Unweighted")
+
+dmld$Group <- factor(dmld$Group, levels=c("Overall","Within group", "Between group"))
+dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
+
+
+inmld <-ggplot(dmld, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "Rich and poor states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin = margin(t = -5)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.6, 'cm'))+
+  theme(legend.key.height = unit(0.5, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+#### Decomposition by Geography
+```{r}
+wtgeo_m <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Geography, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+wtgeomld <- wtgeo_m(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtgeom <- as.list(wtgeomld)
+wgeom <- lapply(list_wtgeom, function(x) x[1]$mld_decomp)
+df_wtgeom <- do.call(rbind.data.frame, wgeom)
+df_wtgeom <- cbind(Year=as.numeric(rownames(df_wtgeom)), df_wtgeom)
+rownames(df_wtgeom) <- NULL
+df_wtgeom <- df_wtgeom[order(df_wtgeom$Year, decreasing = FALSE),]
+wtg_geom <- df_wtgeom %>% rename(wtotal=mld_total, wwithin=mld_within, wbetween=mld_between)
+
+## unweighted
+ungeom <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Geography)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+ungeodm <- ungeom(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_ungeom <- as.list(ungeodm)
+ugm <- lapply(list_ungeom, function(x) x[1]$mld_decomp)
+df_ungeom <- do.call(rbind.data.frame, ugm)
+df_ungeom <- cbind(Year=as.numeric(rownames(df_ungeom)), df_ungeom)
+rownames(df_ungeom) <- NULL
+df_ungeom <- df_ungeom[order(df_ungeom$Year, decreasing = FALSE),]
+ug_geom <- df_ungeom %>% rename(total=mld_total, 
+                                 within=mld_within, between=mld_between)
+
+decomp_geom <-left_join(ug_geom, wtg_geom)
+```
+</br>
+
+#### Data preparation: Geography
+```{r}
+
+dgeom <- reshape2::melt(decomp_geom, id.vars="Year")
+dgeom$Group <- ifelse((dgeom$variable == "wtotal") | (dgeom$variable == "total"), "Overall",
+                       ifelse((dgeom$variable == "wwithin") | (dgeom$variable == "within"), "Within group","Between group"))
+
+
+dgeom$Weight <- ifelse((dgeom$variable == "wtotal") | (dgeom$variable == "wwithin") | 
+                          (dgeom$variable == "wbetween"), "Population Weighted", "Unweighted")
+
+dgeom$Group <- factor(dgeom$Group, levels=c("Overall","Within group", "Between group"))
+dgeom$Weight <- factor(dgeom$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: Geography
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+mldgeom <-ggplot(dgeom, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "Coastal-non-coastal states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t = 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.2, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=6))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+```
+</br>
+
+#### Decomposition by Heating Degree Days
+```{r}
+wthddm <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HDD, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+wth_days <- wthddm(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtheat <- as.list(wth_days)
+wheat <- lapply(list_wtheat, function(x) x[1]$mld_decomp)
+df_wtheat <- do.call(rbind.data.frame, wheat)
+df_wtheat <- cbind(Year=as.numeric(rownames(df_wtheat)), df_wtheat)
+rownames(df_wtheat) <- NULL
+df_wtheat <- df_wtheat[order(df_wtheat$Year, decreasing = FALSE),]
+wtg_heatm <- df_wtheat %>% rename(wtotal=mld_total, wwithin=mld_within, wbetween=mld_between)
+
+## unweighted
+unheatm <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HDD)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+unh_days <- unheatm(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_unheat <- as.list(unh_days)
+unheat <- lapply(list_unheat, function(x) x[1]$mld_decomp)
+df_unheat <- do.call(rbind.data.frame, unheat)
+df_unheat <- cbind(Year=as.numeric(rownames(df_unheat)), df_unheat)
+rownames(df_unheat) <- NULL
+df_unheat <- df_unheat[order(df_unheat$Year, decreasing = FALSE),]
+un_heatm <- df_unheat %>% rename(untotal=mld_total, unwithin=mld_within, unbetween=mld_between)
+
+```
+
+#### Decomposition by Cooling Degree Days
+```{r}
+wtcddm <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$CDD, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+wtc_days <- wtcddm(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtcool <- as.list(wtc_days)
+wcool <- lapply(list_wtcool, function(x) x[1]$mld_decomp)
+df_wtcool <- do.call(rbind.data.frame, wcool)
+df_wtcool <- cbind(Year=as.numeric(rownames(df_wtcool)), df_wtcool)
+rownames(df_wtcool) <- NULL
+df_wtcool <- df_wtcool[order(df_wtcool$Year, decreasing = FALSE),]
+wtg_coolm <- df_wtcool %>% rename(wtotal=mld_total, wwithin=mld_within, wbetween=mld_between)
+
+## unweighted
+uncoolm <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- mld_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$CDD)
+    hb[[i]] <- bar["mld_decomp"]
+  }
+  return(hb)
+}
+unc_days <- uncoolm(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_uncool <- as.list(unc_days)
+uncool <- lapply(list_uncool, function(x) x[1]$mld_decomp)
+df_uncool <- do.call(rbind.data.frame, uncool)
+df_uncool <- cbind(Year=as.numeric(rownames(df_uncool)), df_uncool)
+rownames(df_uncool) <- NULL
+df_uncool <- df_uncool[order(df_uncool$Year, decreasing = FALSE),]
+un_coolm <- df_uncool %>% rename(untotal=mld_total, unwithin=mld_within, unbetween=mld_between)
+```
+
+#### Data preparation: HDD
+```{r}
+decomp_mhdd <-left_join(wtg_heatm, un_heatm)
+dheat <- reshape2::melt(decomp_mhdd, id.vars="Year")
+dheat$Group <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "untotal"), "Overall",
+                       ifelse((dheat$variable == "wwithin") | (dheat$variable == "unwithin"), "Within group", "Between group"))
+
+
+dheat$Weight <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "wwithin") | 
+                          (dheat$variable == "wbetween"), "Population Weighted", "Unweighted")
+
+dheat$Group <- factor(dheat$Group, levels=c("Overall","Within group", "Between group"))
+dheat$Weight <- factor(dheat$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: HDD
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+
+mldheat<-ggplot(dheat, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High-low heating degree days", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=7))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+```
+
+
+#### Data preparation: CDD
+```{r}
+decomp_cddm <-left_join(wtg_coolm, un_coolm)
+
+dcool <- reshape2::melt(decomp_cddm, id.vars="Year")
+dcool$Group <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "untotal"), "Overall",
+                       ifelse((dcool$variable == "wwithin") | (dcool$variable == "unwithin"), "Within group","Between group"))
+
+
+dcool$Weight <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "wwithin") | 
+                          (dcool$variable == "wbetween"), "Population Weighted", "Unweighted")
+
+dcool$Group <- factor(dcool$Group, levels=c("Overall","Within group", "Between group"))
+dcool$Weight <- factor(dcool$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: CDD
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+
+mldcool<-ggplot(dcool, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  #scale_colour_manual(values=c("black", "green","blue", "red")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High-low cooling degree days", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=7))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+```
+
+#### Decomposition Plot by Income, Geography and Heating/Cooling Degree Days
+```{r fig.height = 3, fig.width = 7, fig.align = "center"}
+
+mld_in_geo_days <-ggarrange(inmld, mldgeom, mldheat, mldcool, labels = c("d", "e", "f", "g"), hjust = -2.0, 
+                                font.label = list(size = 8, color = "black", face = "bold"), 
+                                ncol = 4, nrow = 1, common.legend = TRUE, legend ="bottom")
+mld_in_geo_days
+```
+
+#### All MLD Decomposition Plots
+```{r fig.height = 6, fig.width = 7, fig.align = "center"}
+
+decomp_MLD <- ggarrange(mld_party_ex_lcv, mld_in_geo_days, nrow=2)
+decomp_MLD <- annotate_figure(decomp_MLD, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
+
+file.plot <- file.path(dir.plot, "mld_decomp.png")
+png(file.plot, height=6, width=7, units="in", bg= "white", res=300)
+decomp_MLD
+dev.off()
+```

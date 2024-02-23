@@ -1,0 +1,297 @@
+---
+title: "Data Preparation"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'data_preparation.html'))})
+---
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("dplyr")
+library("reshape2")
+library("rmarkdown")
+library("magrittr")
+library("AER")
+library("tidyverse")
+library("usmap")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
+```
+
+#### Define Files
+```{r tidy=TRUE}
+file.pvg <- file.path(dir.data, "US_PVG_1996_20.csv")
+file.dat <- file.path(dir.data, "per_capita_CO2.csv")
+file.pop <- file.path(dir.data, "population.csv")
+file.gdp <- file.path(dir.data, "real_gdp_2012.csv")
+file.comm <- file.path(dir.data, "commercial.csv")
+file.ind <- file.path(dir.data, "industrial.csv")
+file.elec <- file.path(dir.data, "electric_power.csv")
+file.res <- file.path(dir.data, "residential.csv")
+file.trans <- file.path(dir.data, "transportation.csv")
+file.coal <- file.path(dir.data, "coal.csv")
+file.petro <- file.path(dir.data, "petroleum.csv")
+file.gas <- file.path(dir.data, "natural_gas.csv")
+file.house <- file.path(dir.data, "house.csv")
+file.senate <- file.path(dir.data, "senate.csv")
+file.cdd <- file.path(dir.data, "cdd_2021.csv")
+file.hdd <- file.path(dir.data, "hdd_2021.csv")
+file.expend <- file.path(dir.data, "energy_expenditure_pc_2021.csv")
+```
+
+
+### Cook's Political Voting Index data
+```{r tidy=TRUE}
+dat_cook <- read.csv(file.pvg, header=T, skip=1, stringsAsFactors = FALSE)
+data_pvg <- dat_cook %>% dplyr::select(State, PVG_2020, PVG_2016, PVG_2012, PVG_2008, PVG_2004, PVG_2000, PVG_1996)
+dat_state_pvg<-data_pvg %>% mutate(X2021=PVG_2020,X2020=PVG_2016,X2019=PVG_2016,X2018=PVG_2016,
+                            X2017=PVG_2016,X2016=PVG_2012,X2015=PVG_2012,X2014=PVG_2012,X2013=PVG_2012, 
+                            X2012=PVG_2008,X2011=PVG_2008,X2010=PVG_2008,X2009=PVG_2008,
+                            X2008=PVG_2004,X2007=PVG_2004,X2006=PVG_2004,X2005=PVG_2004,
+                            X2004=PVG_2000,X2003=PVG_2000,X2002=PVG_2000,X2001=PVG_2000,
+                            X2000=PVG_1996,X1999 =PVG_1996,X1998=PVG_1996,X1997=PVG_1996) 
+dat_state_pvg<-dat_state_pvg %>% subset(select = -c(2:8))
+dat_pvg<- dat_state_pvg %>% gather(Year, PVG, -State)
+```
+
+#### Party color determination of each state in each presidential election cycle
+```{r tidy=TRUE}
+dat_party <- dat_pvg %>% mutate(Party=ifelse(PVG >=0, "Dem", "Rep"))
+dat_party <- dat_party %>% dplyr::select(State, Year, PVG, Party)
+dat_party$Party<-as.factor(dat_party$Party)
+```
+
+#### League of Conservative Voters data
+##### https://www.lcv.org/
+```{r tidy=TRUE}
+dat_senate <- read.csv(file.senate, header=T, stringsAsFactors = FALSE)
+dat_s <- dat_senate %>% dplyr::select(State, X1997:X2021)
+dat_s<-dat_s %>% gather(Year, senate, X1997:X2021)
+
+dat_house <- read.csv(file.house, header=T, stringsAsFactors = FALSE)
+dat_h <- dat_house %>% dplyr::select(State, X1997:X2021)
+dat_h <- dat_h %>% gather(Year, house, X1997:X2021)
+
+dat_lcv <- left_join(dat_s, dat_h, by=c("State", "Year"))
+dat_lcv <- dat_lcv %>% mutate(lcv = senate+house)
+dat_lcv$Year <- as.factor(dat_lcv$Year)
+
+ave_lcv <- dat_lcv %>% group_by(Year) %>% summarise(m_lcv = mean(lcv)) 
+data_lcv <- merge(dat_lcv, ave_lcv, by="Year")
+```
+
+
+## CO2 data: metric tons of energy-related CO2 emissions per capita (July 2023)
+#### https://www.eia.gov/environment/emissions/state/
+```{r tidy=TRUE}
+dat_CO2<-read.csv(file.dat, header=T, skip=5, stringsAsFactors = FALSE)
+dat_CO2<-dat_CO2[-c(52,53,54,55,56,57,58,59,60), c(1,29:53)]
+dat_CO2 <-dat_CO2 %>% filter(State != 'District of Columbia')
+dat_PC_CO2<-dat_CO2 %>% gather(Year, pc_CO2, X1997:X2021)
+```
+
+### CO2 emissions by Fuel Type (metric tons) data updated July 2023
+```{r tidy=TRUE}
+## Coal
+dat_coal<-read.csv(file.coal, header=T, skip=2, stringsAsFactors = FALSE)
+dat_coal<-dat_coal %>% filter(State != 'District of Columbia')
+dat_coal<-dat_coal %>% dplyr::select(State, X1997:X2021)
+dat_coal<-dat_coal[1:50,]
+dat_coal<- dat_coal %>% gather(Year, coal, X1997:X2021)
+dat_coal$coal <- as.numeric(dat_coal$coal)
+
+## Petroluem
+dat_petro <-read.csv(file.petro, header=T, skip=2, stringsAsFactors = FALSE)
+dat_petro <-dat_petro %>% filter(State != 'District of Columbia')
+dat_petro <-dat_petro %>% dplyr::select(State, X1997:X2021)
+dat_petro <-dat_petro[1:50,]
+dat_petro <- dat_petro %>% gather(Year, petro, X1997:X2021)
+dat_petro$petro <- as.numeric(dat_petro$petro)
+
+## Natural Gas;
+dat_gas <-read.csv(file.gas, header=T, skip=2, stringsAsFactors = FALSE)
+dat_gas <-dat_gas %>% filter(State != 'District of Columbia')
+dat_gas <-dat_gas %>% dplyr::select(State, X1997:X2021)
+dat_gas <-dat_gas[1:50,]
+dat_gas <- dat_gas %>% gather(Year, gas, X1997:X2021)
+dat_gas$gas <- as.numeric(dat_gas$gas)
+
+## join CO2 data from 3 different fuel types
+dat_fuel <- left_join(dat_coal, left_join(dat_petro, dat_gas, by= c("State", "Year")), by=c("State", "Year"))
+```
+
+### CO2 emissions by end-use Sectors: metric tons 
+```{r tidy=TRUE}
+
+## Residential
+dat_res<-read.csv(file.res, header=T, skip=2, stringsAsFactors = FALSE)
+dat_res<-dat_res %>% filter(State != 'District of Columbia')
+dat_res<-dat_res %>% dplyr::select(State, X1997:X2021)
+dat_res<-dat_res[1:50,]
+dat_res<- dat_res %>% gather(Year, resid, X1997:X2021)
+
+### Transportation Sector;
+dat_trans <-read.csv(file.trans, header=T, skip=2, stringsAsFactors = FALSE)
+dat_trans <-dat_trans %>% filter(State != 'District of Columbia')
+dat_trans <-dat_trans %>% dplyr::select(State, X1997:X2021)
+dat_trans <-dat_trans[1:50,]
+dat_trans <- dat_trans %>% gather(Year, transport, X1997:X2021)
+dat_trans$transport <- as.numeric(dat_trans$transport)
+
+## Commercial Sector
+dat_com <-read.csv(file.comm, header=T, skip=2, stringsAsFactors = FALSE)
+dat_com <-dat_com %>% filter(State != 'District of Columbia')
+dat_com <-dat_com %>% dplyr::select(State, X1997:X2021)
+dat_com <-dat_com[1:50,]
+dat_com <- dat_com %>% gather(Year, comm, X1997:X2021)
+
+## Industrial Sector
+dat_ind <-read.csv(file.ind, header=T, skip=2, stringsAsFactors = FALSE)
+dat_ind <-dat_ind %>% filter(State != 'District of Columbia')
+dat_ind <-dat_ind %>% dplyr::select(State, X1997:X2021)
+dat_ind <-dat_ind[1:50,]
+dat_ind <- dat_ind %>% gather(Year, indust, X1997:X2021)
+dat_ind$indust <-as.numeric(dat_ind$indust)
+
+## Electric Power Sector
+dat_elec <-read.csv(file.elec, header=T, skip=2, stringsAsFactors = FALSE)
+dat_elec <-dat_elec %>% filter(State != 'District of Columbia')
+dat_elec <-dat_elec %>% dplyr::select(State, X1997:X2021)
+dat_elec <-dat_elec[1:50,]
+dat_elec <- dat_elec %>% gather(Year, electric, X1997:X2021)
+dat_elec$electric <-as.numeric(dat_elec$electric)
+
+## join CO2 data from 4 different sectors
+dat_sect <- list(dat_res, dat_com, dat_ind, dat_elec, dat_trans) %>% reduce(left_join, by = c("State", "Year"))
+```
+
+## join total, fuel type and sector files
+```{r include=TRUE}
+pc_CO2_total <- list(dat_fuel, dat_sect, dat_PC_CO2) %>% reduce(left_join, by=c("State", "Year"))
+```
+
+### Per Capita GDP (2012 chained dollar): data in thousands both pop and real GDP
+#### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators
+#### Coastal data: https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline
+```{r tidy=TRUE}
+pop <- read.csv(file.pop, header=T, stringsAsFactors = FALSE)
+pop <- pop %>% gather(Year, population, X1997:X2021)
+
+#convert population in 1000 to millions
+pop_m <- pop %>% dplyr::mutate(pop_mi = population/1000)
+pop_m <- pop_m %>% dplyr::select(1, 2, 3, 5)
+```
+
+#### Real GDP (2012 $)
+```{r tidy=TRUE}
+real_gdp <-read.csv(file.gdp, header=T, stringsAsFactors = FALSE)
+real_gdp <- real_gdp %>% gather(Year, r_gdp, X1997:X2021)
+
+p_rgdp <- left_join(pop_m, real_gdp, by = c("State.Abb", "Year"))
+p_rgdp <- p_rgdp %>% mutate(pc_rgdp = floor(r_gdp/pop_mi))  ## per capita GDP for each state
+
+## average GDP for each year (calculated to distinguish between rich and poor states)
+ave_gdp <- p_rgdp %>% group_by(Year) %>% summarise(m_gdp=mean(pc_rgdp))  ## mean  per capita GDP by year 
+p_gdp <- merge(p_rgdp, ave_gdp, by="Year")
+```
+
+### State Abbreviation
+```{r tidy=TRUE}
+names(state.abb) <- state.name
+state.abbr <-data.frame(state.abb)
+state_a <- setNames(cbind(rownames(state.abbr), state.abbr, row.names = NULL), c("State", "State.Abb"))
+```
+
+#### State Abbreviation
+```{r tidy=TRUE}
+## merge GDP and state abbreviation files
+pc_gdp <- merge(state_a, p_gdp, by = "State.Abb")
+```
+
+#### Cooling Degree Days (CDD)
+##### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US
+```{r tidy=TRUE}
+## Cooling degree days
+cdd <- read.csv(file.cdd, header=T, stringsAsFactors = FALSE)
+cdd <- cdd %>% dplyr::select(State.Abb, X1997:X2021)
+cddw <-cdd %>% gather(Year, cdays, X1997:X2021, -State.Abb)
+cddw$cdays <- as.numeric(cddw$cdays)
+
+## Heating degree days
+hdd <- read.csv(file.hdd, header=T, stringsAsFactors = FALSE)
+hdd <- hdd %>% dplyr::select(State.Abb, X1997:X2021)
+hddw <-hdd %>% gather(Year, hdays, X1997:X2021, -State.Abb)
+hddw$hdays <- as.numeric(hddw$hdays)
+
+## join degree days data
+degree_days <- left_join(cddw, hddw, by=c("State.Abb", "Year"))
+degree_days <- merge(state_a, degree_days, by = "State.Abb")
+
+## mean calculations
+degree_av <- degree_days %>% group_by(Year) %>% summarise(m_cdd = mean(cdays), m_hdd = mean(hdays)) 
+deg_days <- merge(degree_days, degree_av, by="Year")
+dg_days <- deg_days %>% dplyr::select(-State.Abb)
+```
+
+#### Expenditure data
+##### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US
+```{r tidy=TRUE}
+dexpend <-read.csv(file.expend, header=T, skip=2, stringsAsFactors = FALSE)
+dexpend <- dexpend %>% dplyr::select(State.Abb, X1997:X2021)
+dexpend <- dexpend %>% gather(Year, expend, X1997:X2021)
+dexpend$expend <- as.numeric(dexpend$expend)
+
+## mean calculations
+expend_av <- dexpend %>% group_by(Year) %>% summarise(m_expend = mean(expend)) 
+dat_expend <- merge(dexpend, expend_av, by="Year")
+dat_expend <- merge(state_a, dat_expend, by = "State.Abb")
+dat_expend <- dat_expend %>% dplyr::select(-State.Abb)
+```
+
+### Order Data
+```{r tidy=TRUE}
+pc_CO2_total <- pc_CO2_total[order(pc_CO2_total$State, pc_CO2_total$Year),]
+dat_party <- dat_party[order(dat_party$State, dat_party$Year),]
+pc_gdp <- pc_gdp[order(pc_gdp$State, pc_gdp$Year),]
+dat_lcv <-dat_lcv[order(dat_lcv$State, dat_lcv$Year),]
+dat_expend <- dat_expend[order(dat_expend$State, dat_expend$Year),]
+dg_days <- dg_days[order(dg_days$State, dg_days$Year),]
+```
+
+### Merge data.frames (energy consumption converted to 1 million Btu per capita)
+```{r tidy=TRUE}
+dat_all <- list(pc_gdp, pc_CO2_total, dat_party, dg_days, data_lcv, dat_expend) %>% reduce(left_join, by = c("State", "Year"))
+
+dat_all$Year <- stringr::str_replace(dat_all$Year, "X", "")
+
+dat <- dat_all %>% mutate(pc_coal=coal/pop_mi, pc_petro = petro/pop_mi, pc_gas = gas/pop_mi,
+                          pc_comm=comm/pop_mi, pc_res=resid/pop_mi, pc_ind=indust/pop_mi, 
+                          pc_elec=electric/pop_mi, pc_trans=transport/pop_mi)
+
+dat <- dat %>% mutate(in_class = ifelse(pc_rgdp >= m_gdp, "Rich", "Poor")) %>% 
+  mutate(HDD = ifelse(hdays >= m_hdd, "High_hdays", "Low_hdays")) %>% 
+  mutate(CDD = ifelse(cdays >= m_cdd, "High_cdays", "Low_cdays")) %>%
+  mutate(HL_Expend = ifelse(expend >= m_expend, "High_Exp", "Low_ExP")) %>%
+  mutate(HL_LCV=ifelse(lcv >= m_lcv, "High_LCV", "Low_LCV"))
+```
+
+### View Data
+```{r, layout="l-body-outset"}
+rmarkdown::paged_table(dat, options = list(rows.print = 20))
+```
+
+### Write Output
+```{r}
+file.output <- file.path(dir.outdata, "dat_ineq.csv")
+write.table(dat, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
+```

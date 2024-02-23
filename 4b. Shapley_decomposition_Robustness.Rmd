@@ -1,0 +1,683 @@
+---
+title: "Shapley Decomposition: Other dimensions"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'Shapley Decomposition Robustness.html'))})
+---
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+
+library("stringr")
+library("dplyr")
+library("ggplot2")
+library("gridExtra")
+library("knitr")
+library("tidyverse")
+library("magrittr")
+library("foreign")
+library("AER")
+library("ggpubr")
+library("devtools")
+library("dineq")
+library("reldist")
+library("ineq")
+library("patchwork")
+library("hash")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
+dir.plot <- file.path(dir.wrk, "dataset/plots_decomp")
+```
+
+#### Define Files and load data
+```{r tidy=TRUE}
+file.dat <- file.path(dir.outdata, "dat_ineq.csv")
+dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
+```
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+#### Decomposition by LCV
+```{r}
+by_year <- function(dat_p, yr) {
+  return(dat_p %>% filter(Year == yr))
+}
+
+wtlcv <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_LCV, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wt_lcv <- wtlcv(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtlcv <- as.list(wt_lcv)
+wlcv <- lapply(list_wtlcv, function(x) x[1]$gini_decomp)
+df_wtlcv <- do.call(rbind.data.frame, wlcv)
+df_wtlcv <- cbind(Year=as.numeric(rownames(df_wtlcv)), df_wtlcv)
+rownames(df_wtlcv) <- NULL
+df_wtlcv <- df_wtlcv[order(df_wtlcv$Year, decreasing = FALSE),]
+wtg_lcv <- df_wtlcv %>% rename(wtotal=gini_total, 
+                                     wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+
+## unweighted
+unlcv <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_LCV)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+un_lcv <- unlcv(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_unlcv <- as.list(un_lcv)
+unlcv <- lapply(list_unlcv, function(x) x[1]$gini_decomp)
+df_unlcv <- do.call(rbind.data.frame, unlcv)
+df_unlcv <- cbind(Year=as.numeric(rownames(df_unlcv)), df_unlcv)
+rownames(df_unlcv) <- NULL
+df_unlcv <- df_unlcv[order(df_unlcv$Year, decreasing = FALSE),]
+un_lcv <- df_unlcv %>% rename(total=gini_total, 
+                                     within=gini_within, between=gini_between, overlap=gini_overlap)
+decomp_lcv <-left_join(un_lcv, wtg_lcv)
+
+```
+</br>
+
+#### Plot data preparation LCV
+```{r}
+dlcv <- reshape2::melt(decomp_lcv, id.vars="Year")
+dlcv$Group <- ifelse((dlcv$variable == "wtotal") | (dlcv$variable == "total"), "Overall",
+                       ifelse((dlcv$variable == "wwithin") | (dlcv$variable == "within"), "Within group",
+                              ifelse((dlcv$variable == "wbetween") | (dlcv$variable == "between"),"Between group","Overlap")))
+
+
+dlcv$Weight <- ifelse((dlcv$variable == "wtotal") | (dlcv$variable == "wwithin") | 
+                          (dlcv$variable == "wbetween") | (dlcv$variable == "woverlap"), "Population weighted", "Unweighted")
+
+dlcv$Group <- factor(dlcv$Group, levels=c("Overall","Within group", "Between group", "Overlap"))
+dlcv$Weight <- factor(dlcv$Weight, levels=c("Population weighted","Unweighted"))
+```
+</br>
+
+#### Plot decompotions by LCV
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+plcv<-ggplot(dlcv, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue", "red")) + 
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High and low LCV score states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.title.x = element_text(size = 8))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -7)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.2, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.4, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+#### Decomposition by energy expenditure 
+```{r}
+wtexpend <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_Expend, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wt_expend <- wtexpend(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtexp <- as.list(wt_expend)
+wexp <- lapply(list_wtexp, function(x) x[1]$gini_decomp)
+df_wtexp <- do.call(rbind.data.frame, wexp)
+df_wtexp <- cbind(Year=as.numeric(rownames(df_wtexp)), df_wtexp)
+rownames(df_wtexp) <- NULL
+df_wtexp <- df_wtexp[order(df_wtexp$Year, decreasing = FALSE),]
+wtg_exp <- df_wtexp %>% rename(wtotal=gini_total, 
+                                     wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+
+## unweighted
+unexp <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HL_Expend)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+un_exp <- unexp(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_unexp <- as.list(un_exp)
+unexp <- lapply(list_unexp, function(x) x[1]$gini_decomp)
+df_unexp <- do.call(rbind.data.frame, unexp)
+df_unexp <- cbind(Year=as.numeric(rownames(df_unexp)), df_unexp)
+rownames(df_unexp) <- NULL
+df_unexp <- df_unexp[order(df_unexp$Year, decreasing = FALSE),]
+un_exp <- df_unexp %>% rename(total=gini_total, 
+                                     within=gini_within, between=gini_between, overlap=gini_overlap)
+decomp_exp <-left_join(un_exp, wtg_exp)
+
+```
+
+#### Plot data preparation Energy Expenditure 
+```{r}
+dexp <- reshape2::melt(decomp_exp, id.vars="Year")
+dexp$Group <- ifelse((dexp$variable == "wtotal") | (dexp$variable == "total"), "Overall",
+                       ifelse((dexp$variable == "wwithin") | (dexp$variable == "within"), "Within group",
+                              ifelse((dexp$variable == "wbetween") | (dexp$variable == "between"),"Between group","Overlap")))
+
+
+dexp$Weight <- ifelse((dexp$variable == "wtotal") | (dexp$variable == "wwithin") | 
+                          (dexp$variable == "wbetween") | (dexp$variable == "woverlap"), "Population weighted", "Unweighted")
+
+dexp$Group <- factor(dexp$Group, levels=c("Overall","Within group", "Between group", "Overlap"))
+dexp$Weight <- factor(dexp$Weight, levels=c("Population weighted","Unweighted"))
+```
+</br>
+
+#### Plot decompotions by LCV
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+pexpend<-ggplot(dexp, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue", "red")) + 
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High and low energy expenditure states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.title.x = element_text(size = 8))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -7)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.2, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.4, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+</br>
+
+#### CO2 Gini Decomposition by INCOME class (Rich versus Poor)
+
+```{r}
+#### Unweighted
+foo_rp <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$in_class)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+gini_rp <- foo_rp(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+rp_decomp <- as.list(gini_rp)
+rp <- lapply(rp_decomp, function(x) x[1]$gini_decomp)
+rp_decomp <- do.call(rbind.data.frame, rp)
+rp_decomp <- cbind(Year=as.numeric(rownames(rp_decomp)), rp_decomp)
+rownames(rp_decomp) <- NULL
+rp_decomp <- rp_decomp[order(rp_decomp$Year, decreasing = FALSE),]
+rp_decomp <- rp_decomp %>% rename(total=gini_total, 
+                                  within=gini_within, between=gini_between, overlap=gini_overlap)
+```
+
+</br>
+
+#### Population-weighted decomposition: Income
+```{r}
+
+wtfoo_rp <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$in_class, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wtgini_rp <- wtfoo_rp(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+rp_wtdecomp <- as.list(wtgini_rp)
+wtrp <- lapply(rp_wtdecomp, function(x) x[1]$gini_decomp)
+rp_wtdecomp <- do.call(rbind.data.frame, wtrp)
+rp_wtdecomp <- cbind(Year=as.numeric(rownames(rp_wtdecomp)), rp_wtdecomp)
+rownames(rp_wtdecomp) <- NULL
+rp_wtdecomp <- rp_wtdecomp[order(rp_wtdecomp$Year, decreasing = FALSE),]
+rp_wtdecomp <- rp_wtdecomp %>% rename(wtotal=gini_total, 
+                                      wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+#rp_wtdecomp_p <- rp_wtdecomp %>% mutate(within_p = within/total, between_p = between/total, overlap_p = overlap/total)
+```
+
+</br>
+
+#### Data preparation: decomposition by INCOME Class
+```{r}
+decomp_income <-left_join(rp_wtdecomp, rp_decomp)
+```
+</br>
+
+#### Plot data preparation 
+```{r}
+dincome <- reshape2::melt(decomp_income, id.vars="Year")
+dincome$Group <- ifelse((dincome$variable == "wtotal") | (dincome$variable == "total"), "Overall",
+                       ifelse((dincome$variable == "wwithin") | (dincome$variable == "within"), "Within states",
+                              ifelse((dincome$variable == "wbetween") | (dincome$variable == "between"),"Between rich & poor states","Overlap")))
+
+
+dincome$Weight <- ifelse((dincome$variable == "wtotal") | (dincome$variable == "wwithin") | 
+                          (dincome$variable == "wbetween") | (dincome$variable == "woverlap"), "Population weighted", "Unweighted")
+
+dincome$Group <- factor(dincome$Group, levels=c("Overall","Within states", "Between rich & poor states", "Overlap"))
+dincome$Weight <- factor(dincome$Weight, levels=c("Population weighted","Unweighted"))
+```
+</br>
+
+#### Plot decompositions by INCOME class
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+pincome<-ggplot(dincome, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_colour_manual(values=c("black", "green","blue", "red")) +  
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "Rich and poor states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  #scale_x_continuous(breaks = seq(min(dincome$Year), max(dincome$Year), 1)) +
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.title.x = element_text(size = 8))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "none", legend.margin = margin(t = -7)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.2, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.4, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=6))
+```
+
+#### Decomposition by LCV, Energy Expenditure and Income
+```{r fig.height = 3.5, fig.width = 7, fig.align = "center"}
+
+decomp_lcv_exp_in <-ggarrange(pexpend, plcv, pincome, labels = c("a", "b", "c"), hjust = -2.0, 
+                                font.label = list(size = 8, color = "black", face = "bold"), 
+                                ncol = 3, nrow = 1, legend="none")
+decomp_lcv_exp_in
+```
+
+</br>
+
+#### Decomposition by Geography
+```{r}
+wtgeo <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Geography, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wtgeod <- wtgeo(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtgeo <- as.list(wtgeod)
+wgeo <- lapply(list_wtgeo, function(x) x[1]$gini_decomp)
+df_wtgeo <- do.call(rbind.data.frame, wgeo)
+df_wtgeo <- cbind(Year=as.numeric(rownames(df_wtgeo)), df_wtgeo)
+rownames(df_wtgeo) <- NULL
+df_wtgeo <- df_wtgeo[order(df_wtgeo$Year, decreasing = FALSE),]
+wtg_geo <- df_wtgeo %>% rename(wtotal=gini_total, 
+                                     wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+
+## unweighted
+ungeo <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$Geography)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+ungeod <- ungeo(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_ungeo <- as.list(ungeod)
+ug <- lapply(list_ungeo, function(x) x[1]$gini_decomp)
+df_ungeo <- do.call(rbind.data.frame, ug)
+df_ungeo <- cbind(Year=as.numeric(rownames(df_ungeo)), df_ungeo)
+rownames(df_ungeo) <- NULL
+df_ungeo <- df_ungeo[order(df_ungeo$Year, decreasing = FALSE),]
+ug_geo <- df_ungeo %>% rename(total=gini_total, 
+                                 within=gini_within, between=gini_between, overlap=gini_overlap)
+decomp_geo <-left_join(ug_geo, wtg_geo)
+```
+</br>
+
+#### Data preparation: Geography
+```{r fig.height = 5, fig.width = 7, fig.align = "center"}
+
+dgeo <- reshape2::melt(decomp_geo, id.vars="Year")
+dgeo$Group <- ifelse((dgeo$variable == "wtotal") | (dgeo$variable == "total"), "Overall",
+                       ifelse((dgeo$variable == "wwithin") | (dgeo$variable == "within"), "Within group",
+                              ifelse((dgeo$variable == "wbetween") | (dgeo$variable == "between"),"Between group","Overlap")))
+
+
+dgeo$Weight <- ifelse((dgeo$variable == "wtotal") | (dgeo$variable == "wwithin") | 
+                          (dgeo$variable == "wbetween") | (dgeo$variable == "woverlap"), "Population Weighted", "Unweighted")
+
+dgeo$Group <- factor(dgeo$Group, levels=c("Overall","Within group", "Between group", "Overlap"))
+dgeo$Weight <- factor(dgeo$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: Geography
+```{r fig.height = 3, fig.width = 4, fig.align = "center"}
+pgeo<-ggplot(dgeo, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "Coastal and non-coastal states", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1), legend.justification="center") +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.2, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=6))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+```
+
+#### Decomposition by Heating Degree Days
+```{r}
+wthdd <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HDD, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wth_days <- wthdd(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtheat <- as.list(wth_days)
+wheat <- lapply(list_wtheat, function(x) x[1]$gini_decomp)
+df_wtheat <- do.call(rbind.data.frame, wheat)
+df_wtheat <- cbind(Year=as.numeric(rownames(df_wtheat)), df_wtheat)
+rownames(df_wtheat) <- NULL
+df_wtheat <- df_wtheat[order(df_wtheat$Year, decreasing = FALSE),]
+wtg_heat <- df_wtheat %>% rename(wtotal=gini_total, 
+                                     wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+
+## unweighted
+unheat <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$HDD)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+unh_days <- unheat(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_unheat <- as.list(unh_days)
+unheat <- lapply(list_unheat, function(x) x[1]$gini_decomp)
+df_unheat <- do.call(rbind.data.frame, unheat)
+df_unheat <- cbind(Year=as.numeric(rownames(df_unheat)), df_unheat)
+rownames(df_unheat) <- NULL
+df_unheat <- df_unheat[order(df_unheat$Year, decreasing = FALSE),]
+un_heat <- df_unheat %>% rename(untotal=gini_total, 
+                                     unwithin=gini_within, unbetween=gini_between, unoverlap=gini_overlap)
+
+decomp_hdd <-left_join(un_heat, wtg_heat)
+```
+
+#### Decomposition by Cooling Degree Days
+```{r}
+wtcdd <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$CDD, weights = ha[[i]]$pop_mi)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+wtc_days <- wtcdd(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_wtcool <- as.list(wtc_days)
+wcool <- lapply(list_wtcool, function(x) x[1]$gini_decomp)
+df_wtcool <- do.call(rbind.data.frame, wcool)
+df_wtcool <- cbind(Year=as.numeric(rownames(df_wtcool)), df_wtcool)
+rownames(df_wtcool) <- NULL
+df_wtcool <- df_wtcool[order(df_wtcool$Year, decreasing = FALSE),]
+wtg_cool <- df_wtcool %>% rename(wtotal=gini_total, 
+                                     wwithin=gini_within, wbetween=gini_between, woverlap=gini_overlap)
+
+## unweighted
+uncool <- function(dat_p){
+  ha <-hash()
+  for(j in 1997:2021){
+    ha[[as.character(j)]] <-by_year(dat_p, j)
+  } 
+  hb <- hash()
+  keys_ha <- keys(ha)
+  for(i in keys_ha) {
+    bar <- gini_decomp(x=ha[[i]]$pc_CO2, z=ha[[i]]$CDD)
+    hb[[i]] <- bar["gini_decomp"]
+  }
+  return(hb)
+}
+unc_days <- uncool(dat_p)
+
+### PARSE HASH FUNCTION OUTPUT ---
+list_uncool <- as.list(unc_days)
+uncool <- lapply(list_uncool, function(x) x[1]$gini_decomp)
+df_uncool <- do.call(rbind.data.frame, uncool)
+df_uncool <- cbind(Year=as.numeric(rownames(df_uncool)), df_uncool)
+rownames(df_uncool) <- NULL
+df_uncool <- df_uncool[order(df_uncool$Year, decreasing = FALSE),]
+un_cool <- df_uncool %>% rename(untotal=gini_total, 
+                                     unwithin=gini_within, unbetween=gini_between, unoverlap=gini_overlap)
+
+decomp_cdd <-left_join(un_cool, wtg_cool)
+```
+
+#### Data preparation: HDD
+```{r}
+
+dheat <- reshape2::melt(decomp_hdd, id.vars="Year")
+dheat$Group <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "untotal"), "Overall",
+                       ifelse((dheat$variable == "wwithin") | (dheat$variable == "unwithin"), "Within group",
+                              ifelse((dheat$variable == "wbetween") | (dheat$variable == "unbetween"),"Between group","Overlap")))
+
+
+dheat$Weight <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "wwithin") | 
+                          (dheat$variable == "wbetween") | (dheat$variable == "woverlap"), "Population Weighted", "Unweighted")
+
+dheat$Group <- factor(dheat$Group, levels=c("Overall","Within group", "Between group", "Overlap"))
+dheat$Weight <- factor(dheat$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: HDD
+```{r fig.height = 3, fig.width = 4, fig.align = "center"}
+
+pheat<-ggplot(dheat, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High and low heating degree days", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=7))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+```
+
+#### Data preparation: CDD
+```{r}
+
+dcool <- reshape2::melt(decomp_cdd, id.vars="Year")
+dcool$Group <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "untotal"), "Overall",
+                       ifelse((dcool$variable == "wwithin") | (dcool$variable == "unwithin"), "Within group",
+                              ifelse((dcool$variable == "wbetween") | (dcool$variable == "unbetween"),"Between group","Overlap")))
+
+
+dcool$Weight <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "wwithin") | 
+                          (dcool$variable == "wbetween") | (dcool$variable == "woverlap"), "Population Weighted", "Unweighted")
+
+dcool$Group <- factor(dcool$Group, levels=c("Overall","Within group", "Between group", "Overlap"))
+dheat$Weight <- factor(dheat$Weight, levels=c("Population Weighted","Unweighted"))
+```
+</br>
+
+#### Decompostion plot: CDD
+```{r fig.height = 3, fig.width = 4, fig.align = "center"}
+
+pcool<-ggplot(dcool, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High and low cooling degree days", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.36), breaks = seq(0, 0.36, 0.04)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=7))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+```
+
+
+#### Decomposition Plot by Geography and Heating/Cooling Degree Days
+```{r fig.height = 3.5, fig.width = 7, fig.align = "center"}
+
+decomp_geo_ddays <-ggarrange(pgeo, pheat, pcool, labels = c("d", "e", "f"), hjust = -2.0, 
+                                font.label = list(size = 8, color = "black", face = "bold"), 
+                                ncol = 3, nrow = 1, common.legend = TRUE, legend ="bottom")
+decomp_geo_ddays
+```
+
+#### Decomposition Plots Together
+```{r fig.height = 5, fig.width = 7, fig.align = "center"}
+decomp_robust <- cowplot::plot_grid(decomp_lcv_exp_in, decomp_geo_ddays, nrow=2, rel_heights = c(1, 1.15))
+robust_decompostion <- annotate_figure(decomp_robust, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
+
+file.plot <- file.path(dir.plot, "robust_decomp.png")
+png(file.plot, height=5, width=7, units="in", bg= "white", res=300)
+robust_decompostion
+dev.off()
+```
+
