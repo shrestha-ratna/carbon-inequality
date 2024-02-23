@@ -1,4 +1,4 @@
-﻿# Red versus blue states: inequality in energy-related CO2 emissions in the United States
+# Red versus blue states: inequality in energy-related CO2 emissions in the United States
 
 
 **Ratna K. Shrestha** (Vancouver School of Economics, University of British Columbia) <br/>
@@ -9,14 +9,14 @@
 
 
 #### Code availability
-R-codes used for data analysis is available at [https://github.com/shrestha-ratna/carbon-inequality](<br/><br/>
+R-codes used for data analysis is available at [https://github.com/shrestha-ratna/carbon-inequality]<br/><br/>
 
 #### Citation
-Shrestha, Ratna K, **Red versus blue states: inequality in energy-related CO2 emissions in the United States** 2024. (*submitted*) 
+Shrestha, Ratna K. (2024), **Red versus blue states: inequality in energy-related CO2 emissions in the United States** (*submitted*) 
 <br/><br/>
 
 #### Corresponding author
 Ratna K. Shrestha, PhD <br/>
 University of British Columbia, <br/>
 6000 Iona Drive, Vancouver, BC, Canada V6T 1L4 <br/>
-E-mail: ratna [dot] shrestha [at] ubc.ca<br/>
+E-mail: ratna.shrestha@ubc.ca <br/>
