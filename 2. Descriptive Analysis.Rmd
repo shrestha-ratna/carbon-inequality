@@ -6,7 +6,7 @@ knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'exploratory_analysis.html'))})
+ output_file=file.path(dirname(input_file), out_dir, 'Descriptive_analysis.html'))})
 ---
 
 #### Define Libraries
@@ -38,7 +38,7 @@ dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
 dir.plot <- file.path(dir.wrk, "dataset/plots_descriptive")
 ```
 
-#### Define Files and load data
+#### Define Files and load data (created in data preparation)
 ```{r tidy=TRUE}
 file.dat <- file.path(dir.outdata, "dat_ineq.csv")
 dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
@@ -58,7 +58,7 @@ dat_mean_spread <- dat_mean %>% spread(Party, pw_mean)
 ## weighted national average CO2 by year 
 Nat_Ave_CO2 <- dat_p %>% group_by(Year) %>% summarise(nat_ave=weighted.mean(pc_CO2, pop_mi))
 
-## join flies: weightd mean CO2 by party
+## join flies: weighted mean CO2 by party
 party_co2 <- list(Nat_Ave_CO2, dat_mean_spread) %>% reduce(left_join, by = c("Year"))
 party_co2_long <- party_co2 %>% gather(Party, mvalue, -Year)
 party_co2_long <- party_co2_long %>%  mutate(Party = fct_relevel(Party, "Rep", "nat_ave", "Dem"))
@@ -96,7 +96,7 @@ co2_p <- ggplot(party_co2_long, aes(x=Year))+
 ```
 
 </br>
-#### Population-weighted per capita CO2 by FUEL TYPE (metric tonnes) and Party
+#### Population-weighted per capita CO2 by fuel type and party (metric tonnes)
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 
 d_fuel <- dat_p %>% group_by(Party, Year) %>%
@@ -154,7 +154,7 @@ dev.off()
 ```
 </br>
 
-#### Population-weighted per capita CO2 by SECTOR (metric tonnes) and Party
+#### Population-weighted per capita CO2 by SECTOR and party (metric tonnes)
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 
 d_sector <- dat_p %>% group_by(Party, Year) %>% 
@@ -300,7 +300,7 @@ co_21 <- plot_usmap(data = state_21, values = "pco", color = "grey")+
 ```
 
 </br>
-#### Combine all US Map of CO2 emissions 1997, 2019, 2020 and 2021
+#### Combine all US Maps of CO2 emissions 1997, 2019, 2020 and 2021
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 
 legend <- get_legend(co_19)
@@ -380,7 +380,7 @@ pv_pl <- annotate_figure(pv_le, bottom = text_grob("Partisan voting gap (PVG)", 
 ```
 </br>
 
-#### Naive correlation between PVG and CO2 emissions
+#### Naive across-state correlation between PVG and CO2 emissions
 ```{r tidy=TRUE}
 dat_1997 <- dat_p %>% filter(Year==1997)
 dat_2019 <- dat_p %>% filter(Year==2019)

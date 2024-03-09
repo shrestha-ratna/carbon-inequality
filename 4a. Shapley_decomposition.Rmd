@@ -37,6 +37,7 @@ dir.data <- file.path(dir.wrk, "dataset/data")
 dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
 dir.plot <- file.path(dir.wrk, "dataset/plots_decomp")
 ```
+
 #### Define Files and load data
 ```{r tidy=TRUE}
 file.dat <- file.path(dir.outdata, "dat_ineq.csv")
@@ -46,16 +47,17 @@ dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
 ```{r setup, include=FALSE} 
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
-</br>
 
-### Gini_Decomposition by Year and Party
-#### Decomposition by population subgroups (Mookharjee and Shorrocks, 1982)
+#### Shapley decomposition of overall CO2 Gini by Year and Party 
+#### (Decomposition by population subgroups (Mookharjee and Shorrocks, 1982))
+##### Data preparation: unweighted 
 ```{r}
-## Unweighted 
+## Define by_year function
 by_year <- function(dat_p, yr) {
   return(dat_p %>% filter(Year == yr))
 }
 
+## Data preparation
 foo <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -71,7 +73,7 @@ foo <- function(dat_p){
 }
 ung_decomp <- foo(dat_p)
 
-### PARSE HASH FUNCTION OUTPUT ---
+### PARSE HASH FUNCTION OUTPUT
 list_decomp <- as.list(ung_decomp)
 yt <- lapply(list_decomp, function(x) x[1]$gini_decomp)
 df_decomp <- do.call(rbind.data.frame, yt)
@@ -80,12 +82,9 @@ rownames(df_decomp) <- NULL
 df_decomp <- df_decomp[order(df_decomp$Year, decreasing = FALSE),]
 g_decomp <- df_decomp %>% rename(total=gini_total, 
                                 within=gini_within, between=gini_between, overlap=gini_overlap)
-#g_decomp_p <- g_decomp %>% mutate(within_p = within/total, between_p = between/total, overlap_p = overlap/total)
 ```
 
-</BR>
-
-#### Population-weighted decomposition: data preparation
+#### Data Preparation: Population-weighted
 ```{r}
 wtfoo <- function(dat_p){
   ha <-hash()
@@ -102,7 +101,7 @@ wtfoo <- function(dat_p){
 }
 wtg_decomp <- wtfoo(dat_p)
 
-### PARSE HASH FUNCTION OUTPUT ---
+### PARSE HASH FUNCTION OUTPUT
 list_wtdecomp <- as.list(wtg_decomp)
 wtyt <- lapply(list_wtdecomp, function(x) x[1]$gini_decomp)
 df_wtdecomp <- do.call(rbind.data.frame, wtyt)
@@ -114,7 +113,7 @@ wtg_decomp <- df_wtdecomp %>% rename(wtotal=gini_total,
 ```
 </br>
 
-#### Merge weighted and unweighted files
+#### Merge weighted and unweighted prepared data for decomposition
 ```{r}
 decomp_party <-left_join(wtg_decomp, g_decomp)
 
@@ -122,8 +121,6 @@ decomp_party <-left_join(wtg_decomp, g_decomp)
 file.output <- file.path(dir.outdata, "decomposition_party.csv")
 write.table(decomp_party, file.output, sep=",", row.names = FALSE, col.names = TRUE, quote=FALSE)
 ```
-
-</br>
 
 #### Data preparation for a plot
 ```{r fig.height = 5, fig.width = 7, fig.align = "center"}
@@ -142,9 +139,8 @@ dparty$Weight <- factor(dparty$Weight, levels=c("Population weighted","Unweighte
 #table(dparty$variable, dparty$Group)
 #table(dparty$variable, dparty$Weight)
 ```
-</br>
 
-#### Decomposition plot by PARTY 
+#### Plot: Decomposition of overall per capita CO2 Gini by PARTY and YEAR
 ```{r fig.height = 2, fig.width = 4, fig.align = "center"}
 pparty<-ggplot(dparty, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
@@ -161,14 +157,10 @@ pparty<-ggplot(dparty, aes(x=Year))+
 pparty
 ```
 
-
-### Decomposition by FUEL TYPE
-#### Coal
+#### Data Preparation for decomposition of CO2 Gini: FUEL TYPE
+##### Coal
 ```{r}
-by_year <- function(dat_p, yr) {
-  return(dat_p %>% filter(Year == yr))
-}
-
+## unweighted
 foo <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -222,7 +214,7 @@ wtd_c <- wtd_c %>% rename(wtg_c=gini_total,
 ```
 </br>
 
-#### Plot preparation: Coal
+#### Preparation for a Plot: Coal
 ```{r}
 coal_ginip <- left_join(wtd_c, decomp_c)
 
@@ -239,7 +231,7 @@ coald$Weight <- factor(coald$Weight, levels=c("Population weighted","Unweighted"
 ```
 </br>
 
-#### Plot: Coal
+#### Decomposition Plot: Coal
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 pfc<-ggplot(coald, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -256,10 +248,10 @@ pfc<-ggplot(coald, aes(x=Year))+
   theme(legend.box = "vertical")+
   theme(legend.background = element_rect(fill = "transparent"))
 ```
-</br>
 
-#### Decomposition: Natural Gas
+#### Shapley Decomposition: Natural Gas
 ```{r}
+## unweighted
 gfoo <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -287,7 +279,7 @@ decomp_g <- decomp_g %>% rename(g_gas=gini_total,
 decomp_g_p <- decomp_g %>% mutate(within_pg = within_g/g_gas, between_pg = between_g/g_gas, overlap_pg = overlap_g/g_gas)
 
 
-## Gini Decomposition for Natural Gas: weighted
+## weighted
 wtgfoo <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -313,9 +305,8 @@ wtdecomp_g <- wtdecomp_g[order(wtdecomp_g$Year, decreasing = FALSE),]
 wtd_gas <- wtdecomp_g %>% rename(wtg_g=gini_total, 
                                  wtwithin_g=gini_within, wtbetween_g=gini_between, wtoverlap_g=gini_overlap)
 ```
-</br>
 
-#### Data preparation: Natural Gas
+#### Data preparation for a plot: Natural Gas
 ```{r}
 gas_ginip <- left_join(wtd_gas, decomp_g)
 
@@ -331,9 +322,8 @@ gasd$Group <- factor(gasd$Group, levels=c("Overall","Within group", "Between gro
 gasd$Weight <- factor(gasd$Weight, levels=c("Population weighted","Unweighted"))
 
 ```
-</br>
 
-#### Plot: Natural Gas
+#### Decomposition plot: Natural Gas
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 pfg <- ggplot(gasd, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -350,10 +340,10 @@ pfg <- ggplot(gasd, aes(x=Year))+
   theme(legend.box = "vertical")+
   theme(legend.background = element_rect(fill = "transparent"))
 ```
-</br>
 
-#### Decomposition: Petroleum
+#### Shapley Decomposition of CO2 Gini: Petroleum
 ```{r}
+## Unweighted
 foop <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -379,7 +369,7 @@ decomp_p <- decomp_p[order(decomp_p$Year, decreasing = FALSE),]
 decomp_p <- decomp_p %>% rename(g_petro=gini_total, 
                                 within_p=gini_within, between_p=gini_between, overlap_p=gini_overlap)
 
-### Weighted Petroleum
+## Weighted 
 wtfoop <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -407,7 +397,7 @@ wtd_petro <- wtdecomp_p %>% rename(wtg_p=gini_total,
 ```
 </br>
 
-#### Plot preparation: Petroleum
+#### Preparation for a plot: Petroleum
 ```{r}
 petro_ginip <- left_join(wtd_petro, decomp_p)
 
@@ -425,7 +415,7 @@ petrod$Weight <- factor(petrod$Weight, levels=c("Population weighted","Unweighte
 ```
 </br>
 
-#### Plot: Petroleum
+#### Decomposition plot: Petroleum
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 
 pfp <- ggplot(petrod, aes(x=Year))+
@@ -449,9 +439,7 @@ pfp <- ggplot(petrod, aes(x=Year))+
   theme(legend.text = element_text(size=7))
 ```
 
-</br>
-
-#### Lorenz curves for total energy and FUEL TYPE
+#### Shapley decomposition plots for total energy and three fuel types
 ```{r fig.height = 2, fig.width = 7, fig.align = "center"}
 
 decomp_total_fuel <- cowplot::plot_grid(pparty, pfc, pfg, pfp , labels = c("a", "b"), label_size = 8,
@@ -459,14 +447,15 @@ decomp_total_fuel <- cowplot::plot_grid(pparty, pfc, pfg, pfp , labels = c("a", 
 decomp_total_fuel
 ```
 
-### Gini Decomposition by SECTOR
-#### Industrial
+#### Shapley Decomposition of CO2 Gini by SECTOR
+##### Industrial
 ```{r tidy=TRUE}
-
+## by_year furntion defined
 by_year <- function(dat_p, yr) {
   return(dat_p %>% filter(Year == yr))
 }
 
+## unweighted
 fooi <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -519,8 +508,6 @@ wtd_ind <- wtdecomp_ind %>% rename(wtg_i=gini_total,
                                     wtwithin_i=gini_within, wtbetween_i=gini_between, wtoverlap_i=gini_overlap)
 ```
 
-</br>
-
 #### Preparation for a plot: Industrial
 ```{r}
 ind_ginip <- left_join(wtd_ind, decomp_ind)
@@ -537,9 +524,8 @@ indd$Group <- factor(indd$Group, levels=c("Overall","Within group","Between grou
 indd$Weight <- factor(indd$Weight, levels=c("Population weighted","Unweighted"))
 
 ```
-</br>
 
-#### Plot: Industrial
+#### Decomposition plot: Industrial
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 psind<-ggplot(indd, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -560,9 +546,9 @@ psind<-ggplot(indd, aes(x=Year))+
   theme(plot.margin = unit(c(5.5, 4, 5.5, 5.5), "pt"))
 ```
 
-#### Decomposition: Electricity
-
+#### Shapley decomposition: Electricity
 ```{r}
+## Weighted
 wtfooe <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -614,12 +600,13 @@ decomp_elec <- decomp_elec[order(decomp_elec$Year, decreasing = FALSE),]
 decomp_elec <- decomp_elec %>% rename(g_elec=gini_total, 
                                       within_el=gini_within, between_el=gini_between, overlap_el=gini_overlap)
 ```
-</br>
 
-#### Electricity: plot preparation
+#### Plot preparation:  Electricity
 ```{r}
+## join weighted and unweighted data files
 el_ginip <- left_join(wtd_el, decomp_elec)
 
+## data preparation
 eld <- reshape2::melt(el_ginip, id.vars="Year")
 eld$Group <- ifelse((eld$variable == "wtg_el") | (eld$variable == "g_elec"), "Overall",
                      ifelse((eld$variable == "wtwithin_el") | (eld$variable == "within_el"), "Within group",
@@ -632,8 +619,8 @@ eld$Group <- factor(eld$Group, levels=c("Overall","Within group","Between group"
 eld$Weight <- factor(eld$Weight, levels=c("Population weighted","Unweighted"))
 ```
 
-</br>
-#### Plots: Electricity
+
+#### Shapley decomposition plot: Electricity
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
   
 pselc<-ggplot(eld, aes(x=Year))+
@@ -653,11 +640,10 @@ pselc<-ggplot(eld, aes(x=Year))+
   theme(legend.key.width = unit(0.5, 'cm'))+
   theme(plot.margin = unit(c(5.5, 4, 5.5, 4), "pt"))
 ```
-</br>
 
-#### Decompsition: Commercial
+#### Shapley decompsition: Commercial
 ```{r}
-### Gini Decomposition of Commercial
+## unweighted
 fooc <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -683,7 +669,7 @@ decomp_com <- decomp_com[order(decomp_com$Year, decreasing = FALSE),]
 decomp_com <- decomp_com %>% rename(g_comm=gini_total, 
                                 within_c=gini_within, between_c=gini_between, overlap_c=gini_overlap)
 
-### weighted
+## weighted
 wtfooc <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -710,7 +696,6 @@ wtdecomp_com <- wtdecomp_com %>% rename(wtg_c=gini_total,
                                     wtwithin_c=gini_within, wtbetween_c=gini_between, wtoverlap_c=gini_overlap)
 
 ```
-</br>
 
 #### Plot preparation: Commercial
 ```{r fig.height = 4, fig.width = 7, fig.align = "center"}
@@ -729,7 +714,7 @@ comd$Weight <- factor(comd$Weight, levels=c("Population weighted","Unweighted"))
 ```
 </br>
 
-#### Plot: Commerical
+#### Decomposition plot: Commerical
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 pscomd<-ggplot(comd, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -750,10 +735,9 @@ pscomd<-ggplot(comd, aes(x=Year))+
   theme(plot.margin = unit(c(5.5, 4, 5.5, 4), "pt"))
 ```
 
-</BR>
-
-#### Decompositiion: Residential
+#### Shapley decompositiion: Residential
 ```{r}
+## Unweighted
 foor <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -806,7 +790,6 @@ wtdecomp_res <- wtdecomp_res %>% rename(wtg_r = gini_total,
                                     wtwithin_r=gini_within, wtbetween_r=gini_between, wtoverlap_r=gini_overlap)
 ```
 
-</br>
 #### Data proparation for a plot: Residential
 
 ```{r}
@@ -825,9 +808,7 @@ resd$Weight <- factor(resd$Weight, levels=c("Population weighted","Unweighted"))
 
 ```
 
-</br>
-
-#### Plot: Residential
+#### Decomposition Plot: Residential
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 psresd<-ggplot(resd, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -847,11 +828,10 @@ psresd<-ggplot(resd, aes(x=Year))+
   theme(legend.key.width = unit(0.5, 'cm'))+
   theme(plot.margin = unit(c(5.5, 4, 5.5, 4), "pt"))
 ```
-</br>
 
-#### Decomposition: Transportation 
+#### Shapley decomposition: Transportation 
 ```{r}
-
+## Unweighted
 foot <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -877,7 +857,7 @@ decomp_trans <- decomp_trans[order(decomp_trans$Year, decreasing = FALSE),]
 decomp_tr <- decomp_trans %>% rename(g_trans = gini_total, 
                                     within_t=gini_within, between_t=gini_between, overlap_t=gini_overlap)
 
-### Weighted
+## Weighted
 wtfoot <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -903,9 +883,8 @@ wtdecomp_trans <- wtdecomp_trans[order(wtdecomp_trans$Year, decreasing = FALSE),
 wtd_trans <- wtdecomp_trans %>% rename(wtg_t = gini_total, 
                                         wtwithin_t=gini_within, wtbetween_t=gini_between, wtoverlap_t=gini_overlap)
 ```
-</br>
 
-#### plot preparation: Transportation
+#### Plot data preparation: Transportation
 ```{r}
 trans_ginip <- left_join(wtd_trans, decomp_tr)
 
@@ -922,9 +901,7 @@ trans$Weight <- factor(trans$Weight, levels=c("Population weighted","Unweighted"
 
 ```
 
-</br>
-
-#### Plot: Transportation
+#### Decomposition plot: Transportation
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
 pstrans<-ggplot(trans, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), linewidth=0.7) +
@@ -946,24 +923,23 @@ pstrans<-ggplot(trans, aes(x=Year))+
   theme(plot.margin = unit(c(5.5, 5.0, 5.5, 4.5), "pt"))
 ```
 
-</br>
-
-#### SECTOR Plot 
+#### Shapley decomposition of CO2 Gini by SECTOR 
 ```{r fig.height = 3.5, fig.width = 7, fig.align = "center"}
 sector_decomp <- ggarrange(psind, pselc, psresd, pscomd, pstrans, ncol = 5, nrow=1, legend="bottom", common.legend=T)
 sector_decomp
 ```
 </br>
 
-#### Both plots (total energy/fuel type and sector)
+### Both plots (total energy/fuel type and sector plots together)
 ```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 sector_fuel_decomp <- ggarrange(decomp_total_fuel, sector_decomp, labels = c("", "c"), hjust = -1.5, 
                          font.label = list(size = 8, color = "black", face = "bold"), 
                          ncol = 1, nrow = 2, common.legend = T)
-sf_decomp <- annotate_figure(sector_fuel_decomp, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
+all_decomp <- annotate_figure(sector_fuel_decomp, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
+all_decomp
 
-file.plot <- file.path(dir.plot, "sf_decomp.png")
+file.plot <- file.path(dir.plot, "all_decomp.png")
 png(file.plot, height=4.5, width=7, units="in", bg= "white", res=300)
-sf_decomp
+all_decomp
 dev.off()
 ```

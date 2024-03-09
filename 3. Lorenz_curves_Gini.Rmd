@@ -37,6 +37,7 @@ dir.data <- file.path(dir.wrk, "dataset/data")
 dir.outdata <- file.path(dir.wrk, "dataset/outputdata")
 dir.plot <- file.path(dir.wrk, "dataset/plots_descriptive")
 ```
+
 #### Define Files and load data
 ```{r tidy=TRUE}
 file.dat <- file.path(dir.outdata, "dat_ineq.csv")
@@ -47,7 +48,7 @@ dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
-#### Gini index overall and by fuel type
+#### Carbon Gini index (population weighted and unweighted) overall and by fuel type
 ```{r tidy=TRUE}
 gini_fuel <- dat_p %>% group_by(Year) %>% summarise(un_gini = gini(pc_CO2), wt_gini = gini.wtd(pc_CO2, pop_mi), gini_c=gini(pc_coal), wtgini_c=gini.wtd(pc_coal, pop_mi), gini_p=gini(pc_petro), wtgini_p =gini.wtd(pc_petro, pop_mi),gini_g=gini(pc_gas), wtgini_g=gini.wtd(pc_gas, pop_mi))
 
@@ -67,7 +68,7 @@ gini_fuel$Weight <- factor(gini_fuel$Weight, levels=c("Unweighted","Population W
 ```
 </br></br>
 
-#### Plot
+#### Plot fuel type
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 
 fuel1<-ggplot(gini_fuel, aes(x=Year))+
@@ -93,7 +94,7 @@ fuel1<-ggplot(gini_fuel, aes(x=Year))+
 ```
 </br>
 
-#### Gini index by sector
+#### Carbon Gini index by sector
 ```{r}
 gini_sector <- dat_p %>% group_by(Year) %>% 
               summarise(gini_com=gini(pc_comm), wtgini_com=gini.wtd(pc_comm, pop_mi),
@@ -141,7 +142,7 @@ sector1<-ggplot(gini_sector, aes(x=Year))+
   theme(legend.key.height = unit(0.2, "cm"))
 ```
 
-#### Plot Gini by fuel type and sector
+#### Plot per capita carbon Gini by fuel type and sector
 
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 fuel_sector_Gini <- ggarrange(fuel1, sector1, labels = c("a", "b"), hjust = -2, font.label = list(size = 8, color = "black", face = "bold"), ncol = 2, nrow = 1, legend = "bottom")
@@ -152,12 +153,14 @@ fuel_sector_Gini
 dev.off()
 ```
 
-### Lorenz Asymmetry Coefficient Calculations: CO2 and GDP
+#### Lorenz Asymmetry Coefficient Calculations
 #### Damgaard and Weiner: Describing Inequality in Plant Size or Fecundity, 2000. Ecology 81(4),1139-1142.
 
 ```{r}
+## data for years: 1997, 2019, 2020 and 2021
 lac_97_21 <- dat_p %>% filter(Year %in% c(1997, 2019, 2020, 2021))
 
+## LAC and weighted Gini of overall pc_CO2 and pc CO2 from fuel type
 LAC_CO2 <- lac_97_21 %>% group_by(Year) %>%
   summarise(wlac = round(Lasym(pc_CO2, pop_mi), 3), wgini_c=gini.wtd(pc_CO2, pop_mi))
 LAC_coal <- lac_97_21 %>% group_by(Year) %>%
@@ -167,7 +170,7 @@ LAC_petro <-lac_97_21 %>% group_by(Year) %>%
 LAC_gas <- lac_97_21 %>% group_by(Year) %>%
   summarise(lac_gas = round(Lasym(pc_gas, pop_mi), 3), wgini_gas=gini.wtd(pc_gas, pop_mi))
 
-## Lorenz for pc_CO2
+## Data for 1997, 2019, 2020 and 2021 (for Lorenz curve plots)
 dat_97 <- dat_p %>% filter(Year== 1997)
 dat_19 <- dat_p %>% filter(Year== 2019)
 dat_20 <- dat_p %>% filter(Year== 2020)
@@ -178,24 +181,28 @@ dat_21 <- dat_p %>% filter(Year== 2021)
 
 #### Data preparation: 1997
 ```{r}
+## total pop-weighted pc_CO2
 wc_97 <- dat_97 %>% arrange(pc_CO2)
 wc_97$one <- "1" 
 wc_97$one <-as.numeric(wc_97$one)
-wc_97$cum_unit = cumsum(wc_97$one*wc_97$pop_mi)/sum(wc_97$one*wc_97$pop_mi)  ## cum_unit ranked by per capita CO2
+wc_97$cum_unit = cumsum(wc_97$one*wc_97$pop_mi)/sum(wc_97$one*wc_97$pop_mi)  ## ranked by per capita CO2
 wc_97$cum_co2 = cumsum(wc_97$pc_CO2*wc_97$pop_mi)/sum(wc_97$pc_CO2*wc_97$pop_mi) ## cumulative per capita CO2
 
+## pc_CO2 from coal
 coal_97 <- dat_97 %>% arrange(pc_coal)
 coal_97$one <- "1" 
 coal_97$one <-as.numeric(coal_97$one)
 coal_97$cum_unit = cumsum(coal_97$one*coal_97$pop_mi)/sum(coal_97$one*coal_97$pop_mi) 
 coal_97$cum_coal = cumsum(coal_97$pc_coal*coal_97$pop_mi)/sum(coal_97$pc_coal*coal_97$pop_mi)
 
+## pc_CO2 from Petroleum
 petro_97 <- dat_97 %>% arrange(pc_petro)
 petro_97$one <- "1" 
 petro_97$one <-as.numeric(petro_97$one)
 petro_97$cum_unit = cumsum(petro_97$one*petro_97$pop_mi)/sum(petro_97$one*petro_97$pop_mi)
 petro_97$cum_petro = cumsum(petro_97$pc_petro*petro_97$pop_mi)/sum(petro_97$pc_petro*petro_97$pop_mi)
 
+## pc_CO2 from natural gas
 gas_97 <- dat_97 %>% arrange(pc_gas)
 gas_97$one <- "1" 
 gas_97$one <-as.numeric(gas_97$one)
@@ -205,7 +212,7 @@ gas_97$cum_gas = cumsum(gas_97$pc_gas*gas_97$pop_mi)/sum(gas_97$pc_gas*gas_97$po
 ```
 </br>
 
-#### plot 1997
+#### Population-weighted Lorenz curves (total PC_CO2 and PC_CO2 from fuels) 1997
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Overall (0.244, 1.11)" = "green", "Coal (0.462, 0.79)"= "red", "Petroleum (0.162, 1.32)" = "black", 
              "Natural Gas (0.327, 1.18)" = "blue")
@@ -232,6 +239,7 @@ fuel97 <- ggplot() +
 
 #### Data preparation 2019
 ```{r}
+## pop-weighted total pc_CO2
 wc_19 <- dat_19 %>% arrange(pc_CO2)
 wc_19$one <- "1" 
 wc_19$one <-as.numeric(wc_19$one)
@@ -258,7 +266,7 @@ gas_19$cum_gas = cumsum(gas_19$pc_gas*gas_19$pop_mi)/sum(gas_19$pc_gas*gas_19$po
 ```
 </br>
 
-#### Plot 2019
+#### Lorenz curves 2019
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Overall (0.238, 0.92)" = "green", "Coal (0.570, 0.90)"= "red", "Petroleum (0.149, 1.32)" = "black", 
              "Natural Gas (0.265, 1.12)" = "blue")
@@ -312,7 +320,7 @@ gas_20$cum_gas = cumsum(gas_20$pc_gas*gas_20$pop_mi)/sum(gas_20$pc_gas*gas_20$po
 ```
 </br>
 
-#### plot 2020
+#### Lorenz curves: 2020
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Overall (0.255, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
              "Natural Gas (0.271, 1.08)" = "blue")
@@ -364,7 +372,7 @@ gas_21$cum_gas = cumsum(gas_21$pc_gas*gas_21$pop_mi)/sum(gas_21$pc_gas*gas_21$po
 ```
 </br>
 
-#### plot 2021
+#### Lorenz curves 2021
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Overall (0.250, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
              "Natural Gas (0.271, 1.08)" = "blue")
@@ -390,7 +398,7 @@ fuel21 <- ggplot() +
 
 </br>
 
-#### output plot: fuel type
+#### Lorenz curves: overall and fuel type for 1997, 2019, 2020 and 2021
 ```{r fig.height = 2.5, fig.width = 7, fig.align = "center"}
 fuel_lorenz <- plot_grid(fuel97, NULL, fuel19, NULL, fuel20, NULL, fuel21, nrow=1, ncol=7, labels = "a", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 0, 1, 0, 1, 0, 1), align = "hv")
 
@@ -399,7 +407,7 @@ fuel_lorenz
 
 </br>
 
-### LAC and Gini by SECTOR.
+### carbon LAC and Gini by SECTOR.
 ```{r}
 lac_trans <- lac_97_21 %>% group_by(Year) %>%
   summarise(lac_trans = round(Lasym(pc_trans, pop_mi), 3), gini_tra=gini.wtd(pc_trans, pop_mi))
@@ -455,7 +463,7 @@ com_97$cum_com = cumsum(com_97$pc_comm*com_97$pop_mi)/sum(com_97$pc_comm*com_97$
 ```
 </br>
 
-#### plot 1997
+#### Lorenz curve 1997
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Industrial (0.447, 1.16)" = "green", "Electricity (0.379, 0.83)" = "blue", "Residential (0.294, 0.80)" = "orange", "Commercial (0.258, 0.84)" = "red", "Transport (0.135, 1.12)" = "black")
 
@@ -515,7 +523,7 @@ com_19$cum_com = cumsum(com_19$pc_comm*com_19$pop_mi)/sum(com_19$pc_comm*com_19$
 ```
 </br>
 
-#### plot 2019
+#### Lorenz curve 2019
 ```{r fig.height = 2, fig.width = 5, fig.align = "center"}
 colors <- c("Industrial (0.511, 0.99)" = "green", "Electricity (0.394, 0.89)" = "blue", "Residential (0.339, 0.86)" = "orange", "Commercial (0.238, 0.88)" = "red", "Transport (0.108, 1.15)" = "black")
 
@@ -576,7 +584,7 @@ com_20$cum_com = cumsum(com_20$pc_comm*com_20$pop_mi)/sum(com_20$pc_comm*com_20$
 ```
 </br>
 
-#### plot 2020
+#### Lorenz curves 2020
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Industrial (0.511, 1.02)" = "green", "Electricity (0.392, 0.87)" = "blue", "Residential (0.329, 0.88)" = "orange", "Commercial (0.230, 0.87)" = "red", "Transport (0.138, 1.17)" = "black")
 
@@ -600,6 +608,7 @@ sector20 <- ggplot() +
   theme(plot.margin = unit(c(5.5, 1, 5.5, 1), "pt"))+
   scale_color_manual(values = colors, breaks = names(colors)[c(1, 2, 3, 4, 5)])
 ```
+
 #### Data preparation 2021
 ```{r}
 ind_21 <- dat_21 %>% arrange(pc_ind)
@@ -634,7 +643,7 @@ com_21$cum_com = cumsum(com_21$pc_comm*com_21$pop_mi)/sum(com_21$pc_comm*com_21$
 ```
 </br>
 
-#### plot 2021
+#### Lorenz curves 2021
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
 colors <- c("Industrial (0.517, 1.01)" = "green", "Electricity (0.395, 0.86)" = "blue", "Residential (0.326, 0.88)" = "orange", "Commercial (0.228, 0.87)" = "red", "Transport (0.132, 1.24)" = "black")
 
@@ -660,7 +669,7 @@ sector21 <- ggplot() +
 ```
 </br>
 
-#### output all
+#### Lorenz curves for all years by sectors
 ```{r fig.height = 3.0, fig.width = 7, fig.align = "center"}
 sector_lorenz <- plot_grid(sector97, sector19, sector20, sector21, nrow=1, ncol=4, labels = "b", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 1, 1, 1), align = "hv")
 sector_lorenz
@@ -668,7 +677,7 @@ sector_lorenz
 
 </br>
 
-#### plot by sector and fuel type
+#### Lorenz curves of overall/fuel pc_CO2 and pc_CO2 sector for 1997-2021
 ```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 
 sector_fuel_lorenz <-ggarrange(fuel_lorenz, sector_lorenz,  ncol=1, nrow=2)
@@ -678,7 +687,7 @@ sector_fuel_lorenz
 
 </br>
 
-### plot all (CO2/GDP, Sector and Fuel Type)
+#### Lorenz plot all together (overall CO2, Sector and Fuel Type)
 ```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 
 file.plot <- file.path(dir.plot, "sector_fuel_lorenz.png")

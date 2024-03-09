@@ -48,13 +48,15 @@ dat_p <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
-### Mean Log Deviation
-#### Decomposition of MLD by Party
+#### Mean Log Deviation
+#### Decomposition of CO2 MLD by Party and Year
 ```{r}
+## define by_year function
 by_year <- function(dat_p, yr) {
   return(dat_p %>% filter(Year == yr))
 }
 
+## weighted
 pmld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -79,6 +81,7 @@ rownames(pmldco_decomp) <- NULL
 pmldco_d <- pmldco_decomp[order(pmldco_decomp$Year, decreasing = FALSE),]
 pmldco_d <- pmldco_d %>% rename(pmld=mld_total, pwithin=mld_within, pbetween=mld_between)
 
+## unweighted
 pumld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -105,10 +108,12 @@ pumldco_d <- pumldco_d %>% rename(pumld=mld_total, puwithin=mld_within, pubetwee
 ```
 </br>
 
-#### Decomposition of MLD by Party
+#### Decomposition of MLD by Party/Year: data preparation for a plot
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
-
+## Join files
 decomp_pmld <-left_join(pmldco_d, pumldco_d)
+
+## data preparation
 dmld <- reshape2::melt(decomp_pmld, id.vars="Year")
 
 dmld$Group <- ifelse((dmld$variable == "pmld") | (dmld$variable == "pumld"), "Overall",
@@ -121,7 +126,7 @@ dmld$Weight <- ifelse((dmld$variable == "pmld") | (dmld$variable == "pwithin") |
 dmld$Group <- factor(dmld$Group, levels=c("Overall","Within group", "Between group"))
 dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
 
-
+## Plot
 pmld <-ggplot(dmld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
   scale_colour_manual(values=c("black", "green","blue")) +  
@@ -146,6 +151,7 @@ pmld <-ggplot(dmld, aes(x=Year))+
 
 #### Decomposition of MLD by LCV
 ```{r}
+## Weighted
 lmld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -170,6 +176,7 @@ rownames(lmldco_decomp) <- NULL
 lmldco_d <- lmldco_decomp[order(lmldco_decomp$Year, decreasing = FALSE),]
 lmldco_d <- lmldco_d %>% rename(lmld=mld_total, lwithin=mld_within, lbetween=mld_between)
 
+## Unweighted
 lumld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -198,8 +205,10 @@ lumldco_d <- lumldco_d %>% rename(lumld=mld_total, luwithin=mld_within, lubetwee
 
 #### Decomposition of MLD by LCV
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
-
+## Join files
 decomp_lmld <-left_join(lmldco_d, lumldco_d)
+
+## Data preparation
 lmld <- reshape2::melt(decomp_lmld, id.vars="Year")
 
 lmld$Group <- ifelse((lmld$variable == "lmld") | (lmld$variable == "lumld"), "Overall",
@@ -212,7 +221,6 @@ lmld$Weight <- ifelse((lmld$variable == "lmld") | (lmld$variable == "lwithin") |
 lmld$Group <- factor(lmld$Group, levels=c("Overall","Within group", "Between group"))
 lmld$Weight <- factor(lmld$Weight, levels=c("Population weighted","Unweighted"))
 ```
-
 
 #### Plot by LCV
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
@@ -239,8 +247,9 @@ lmld <-ggplot(lmld, aes(x=Year))+
   theme(legend.text = element_text(size=6))
 ```
 
-#### Decomposition of MLD by Expenditure
+#### Decomposition of MLD by Energy Expenditure
 ```{r}
+## Weighted
 emld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -265,6 +274,7 @@ rownames(emldco_decomp) <- NULL
 emldco_d <- emldco_decomp[order(emldco_decomp$Year, decreasing = FALSE),]
 emldco_d <- emldco_d %>% rename(emld=mld_total, ewithin=mld_within, ebetween=mld_between)
 
+## Unweighted
 eumld_co <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -293,8 +303,10 @@ eumldco_d <- eumldco_d %>% rename(eumld=mld_total, euwithin=mld_within, eubetwee
 
 #### Decomposition of MLD by Expenditure
 ```{r fig.height = 2, fig.width = 3, fig.align = "center"}
-
+## Join files
 decomp_emld <-left_join(emldco_d, eumldco_d)
+
+## Data preparation
 emld <- reshape2::melt(decomp_emld, id.vars="Year")
 
 emld$Group <- ifelse((emld$variable == "emld") | (emld$variable == "eumld"), "Overall",
@@ -307,7 +319,7 @@ emld$Group <- factor(emld$Group, levels=c("Overall","Within group", "Between gro
 emld$Weight <- factor(emld$Weight, levels=c("Population weighted","Unweighted"))
 ```
 
-#### Plot by Expenditure
+#### Plot by Energy Expenditure
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 exmld <-ggplot(emld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
@@ -331,8 +343,6 @@ exmld <-ggplot(emld, aes(x=Year))+
   theme(legend.text = element_text(size=6))
 ```
 
-</br>
-
 #### Plots by Party expenditure and LCV
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 
@@ -345,6 +355,7 @@ mld_party_ex_lcv
 
 #### Decomposition of MLD by income class
 ```{r}
+## Weighted
 mld_c <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -369,6 +380,7 @@ rownames(mldco_decomp) <- NULL
 mldco_d <- mldco_decomp[order(mldco_decomp$Year, decreasing = FALSE),]
 mldco_d <- mldco_d %>% rename(wmld=mld_total, wwithin=mld_within, wbetween=mld_between)
 
+## Unweighted
 umld_c <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -393,11 +405,13 @@ rownames(umld_decomp) <- NULL
 umldco_d <- umld_decomp[order(umld_decomp$Year, decreasing = FALSE),]
 umldco_d <- umldco_d %>% rename(umld=mld_total, uwithin=mld_within, ubetween=mld_between)
 ```
-</br>
 
 #### Decomposition of MLD by Income
 ```{r}
+## Join files
 decomp_mld <- left_join(mldco_d, umldco_d)
+
+## Data preparation
 dmld <- reshape2::melt(decomp_mld, id.vars="Year")
 dmld$Group <- ifelse((dmld$variable == "wmld") | (dmld$variable == "umld"), "Overall",
                      ifelse((dmld$variable == "wwithin") | (dmld$variable == "uwithin"), "Within group",
@@ -410,7 +424,7 @@ dmld$Weight <- ifelse((dmld$variable == "wmld") | (dmld$variable == "wwithin") |
 dmld$Group <- factor(dmld$Group, levels=c("Overall","Within group", "Between group"))
 dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
 
-
+## Plot
 inmld <-ggplot(dmld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
   scale_colour_manual(values=c("black", "green","blue")) +  
@@ -434,6 +448,7 @@ inmld <-ggplot(dmld, aes(x=Year))+
 
 #### Decomposition by Geography
 ```{r}
+## Weighted
 wtgeo_m <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -484,13 +499,15 @@ df_ungeom <- df_ungeom[order(df_ungeom$Year, decreasing = FALSE),]
 ug_geom <- df_ungeom %>% rename(total=mld_total, 
                                  within=mld_within, between=mld_between)
 
-decomp_geom <-left_join(ug_geom, wtg_geom)
 ```
 </br>
 
 #### Data preparation: Geography
 ```{r}
+## Join files
+decomp_geom <-left_join(ug_geom, wtg_geom)
 
+## Data preparation
 dgeom <- reshape2::melt(decomp_geom, id.vars="Year")
 dgeom$Group <- ifelse((dgeom$variable == "wtotal") | (dgeom$variable == "total"), "Overall",
                        ifelse((dgeom$variable == "wwithin") | (dgeom$variable == "within"), "Within group","Between group"))
@@ -502,7 +519,6 @@ dgeom$Weight <- ifelse((dgeom$variable == "wtotal") | (dgeom$variable == "wwithi
 dgeom$Group <- factor(dgeom$Group, levels=c("Overall","Within group", "Between group"))
 dgeom$Weight <- factor(dgeom$Weight, levels=c("Population Weighted","Unweighted"))
 ```
-</br>
 
 #### Decompostion plot: Geography
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
@@ -529,10 +545,10 @@ mldgeom <-ggplot(dgeom, aes(x=Year))+
   theme(legend.text = element_text(size=6))+
   scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
 ```
-</br>
 
 #### Decomposition by Heating Degree Days
 ```{r}
+## Weighted
 wthddm <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -584,8 +600,53 @@ un_heatm <- df_unheat %>% rename(untotal=mld_total, unwithin=mld_within, unbetwe
 
 ```
 
+
+#### Data preparation: HDD
+```{r}
+## Join files
+decomp_mhdd <-left_join(wtg_heatm, un_heatm)
+
+## Data preparation
+dheat <- reshape2::melt(decomp_mhdd, id.vars="Year")
+dheat$Group <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "untotal"), "Overall",
+                       ifelse((dheat$variable == "wwithin") | (dheat$variable == "unwithin"), "Within group", "Between group"))
+
+
+dheat$Weight <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "wwithin") | 
+                          (dheat$variable == "wbetween"), "Population Weighted", "Unweighted")
+
+dheat$Group <- factor(dheat$Group, levels=c("Overall","Within group", "Between group"))
+dheat$Weight <- factor(dheat$Weight, levels=c("Population Weighted","Unweighted"))
+```
+
+#### Decompostion plot: HDD
+```{r fig.height = 3, fig.width = 3, fig.align = "center"}
+
+mldheat<-ggplot(dheat, aes(x=Year))+
+  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
+  scale_linetype_manual(values=c("solid","dotted")) +
+  labs(x = "High-low heating degree days", y = "")+
+  theme(text=element_text(size=8))+
+  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
+  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
+  theme(axis.text.y = element_blank())+
+  theme(legend.title = element_blank())+
+  theme(legend.direction = "horizontal") +
+  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
+  theme(legend.box = "vertical")+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.spacing.x = unit(0.3, "lines"))+
+  theme(legend.spacing.y = unit(0.6, "lines"))+
+  theme(legend.key.width = unit(0.35, 'cm'))+
+  theme(legend.key.height = unit(0.4, 'cm'))+
+  theme(legend.text = element_text(size=7))+
+  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+```
+
 #### Decomposition by Cooling Degree Days
 ```{r}
+## Weighted
 wtcddm <- function(dat_p){
   ha <-hash()
   for(j in 1997:2021){
@@ -636,52 +697,12 @@ df_uncool <- df_uncool[order(df_uncool$Year, decreasing = FALSE),]
 un_coolm <- df_uncool %>% rename(untotal=mld_total, unwithin=mld_within, unbetween=mld_between)
 ```
 
-#### Data preparation: HDD
-```{r}
-decomp_mhdd <-left_join(wtg_heatm, un_heatm)
-dheat <- reshape2::melt(decomp_mhdd, id.vars="Year")
-dheat$Group <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "untotal"), "Overall",
-                       ifelse((dheat$variable == "wwithin") | (dheat$variable == "unwithin"), "Within group", "Between group"))
-
-
-dheat$Weight <- ifelse((dheat$variable == "wtotal") | (dheat$variable == "wwithin") | 
-                          (dheat$variable == "wbetween"), "Population Weighted", "Unweighted")
-
-dheat$Group <- factor(dheat$Group, levels=c("Overall","Within group", "Between group"))
-dheat$Weight <- factor(dheat$Weight, levels=c("Population Weighted","Unweighted"))
-```
-</br>
-
-#### Decompostion plot: HDD
-```{r fig.height = 3, fig.width = 3, fig.align = "center"}
-
-mldheat<-ggplot(dheat, aes(x=Year))+
-  geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_linetype_manual(values=c("solid","dotted")) +
-  labs(x = "High-low heating degree days", y = "")+
-  theme(text=element_text(size=8))+
-  scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
-  scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
-  theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
-  theme(axis.text.y = element_blank())+
-  theme(legend.title = element_blank())+
-  theme(legend.direction = "horizontal") +
-  theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
-  theme(legend.box = "vertical")+
-  theme(legend.background = element_rect(fill = "transparent")) +
-  theme(legend.spacing.x = unit(0.3, "lines"))+
-  theme(legend.spacing.y = unit(0.6, "lines"))+
-  theme(legend.key.width = unit(0.35, 'cm'))+
-  theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=7))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
-```
-
-
 #### Data preparation: CDD
 ```{r}
+## Join files
 decomp_cddm <-left_join(wtg_coolm, un_coolm)
 
+## Data preparation
 dcool <- reshape2::melt(decomp_cddm, id.vars="Year")
 dcool$Group <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "untotal"), "Overall",
                        ifelse((dcool$variable == "wwithin") | (dcool$variable == "unwithin"), "Within group","Between group"))
@@ -693,7 +714,6 @@ dcool$Weight <- ifelse((dcool$variable == "wtotal") | (dcool$variable == "wwithi
 dcool$Group <- factor(dcool$Group, levels=c("Overall","Within group", "Between group"))
 dcool$Weight <- factor(dcool$Weight, levels=c("Population Weighted","Unweighted"))
 ```
-</br>
 
 #### Decompostion plot: CDD
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
@@ -736,6 +756,9 @@ mld_in_geo_days
 decomp_MLD <- ggarrange(mld_party_ex_lcv, mld_in_geo_days, nrow=2)
 decomp_MLD <- annotate_figure(decomp_MLD, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
 
+decomp_MLD
+
+## plot file output
 file.plot <- file.path(dir.plot, "mld_decomp.png")
 png(file.plot, height=6, width=7, units="in", bg= "white", res=300)
 decomp_MLD

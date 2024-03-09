@@ -1661,8 +1661,8 @@ file.cdd &lt;- file.path(dir.data, &quot;cdd_2021.csv&quot;)
 file.hdd &lt;- file.path(dir.data, &quot;hdd_2021.csv&quot;)
 file.expend &lt;- file.path(dir.data, &quot;energy_expenditure_pc_2021.csv&quot;)</code></pre>
 </div>
-<div id="cooks-political-voting-index-data" class="section level3">
-<h3>Cook’s Political Voting Index data</h3>
+<div id="presidential-election-data-httpswww.cookpolitical.comcook-pvi" class="section level4">
+<h4>Presidential election data (<a href="https://www.cookpolitical.com/cook-pvi" class="uri">https://www.cookpolitical.com/cook-pvi</a>)</h4>
 <pre class="r"><code>dat_cook &lt;- read.csv(file.pvg, header=T, skip=1, stringsAsFactors = FALSE)
 data_pvg &lt;- dat_cook %&gt;% dplyr::select(State, PVG_2020, PVG_2016, PVG_2012, PVG_2008, PVG_2004, PVG_2000, PVG_1996)
 dat_state_pvg&lt;-data_pvg %&gt;% mutate(X2021=PVG_2020,X2020=PVG_2016,X2019=PVG_2016,X2018=PVG_2016,
@@ -1673,17 +1673,20 @@ dat_state_pvg&lt;-data_pvg %&gt;% mutate(X2021=PVG_2020,X2020=PVG_2016,X2019=PVG
                             X2000=PVG_1996,X1999 =PVG_1996,X1998=PVG_1996,X1997=PVG_1996) 
 dat_state_pvg&lt;-dat_state_pvg %&gt;% subset(select = -c(2:8))
 dat_pvg&lt;- dat_state_pvg %&gt;% gather(Year, PVG, -State)</code></pre>
+</div>
 <div id="party-color-determination-of-each-state-in-each-presidential-election-cycle" class="section level4">
 <h4>Party color determination of each state in each presidential
 election cycle</h4>
+<div id="pvg-democratic-candidates-votes---republican-candidates-votes" class="section level5">
+<h5>PVG = Democratic candidate’s votes - Republican candidate’s
+votes</h5>
 <pre class="r"><code>dat_party &lt;- dat_pvg %&gt;% mutate(Party=ifelse(PVG &gt;=0, &quot;Dem&quot;, &quot;Rep&quot;))
 dat_party &lt;- dat_party %&gt;% dplyr::select(State, Year, PVG, Party)
 dat_party$Party&lt;-as.factor(dat_party$Party)</code></pre>
 </div>
-<div id="league-of-conservative-voters-data" class="section level4">
-<h4>League of Conservative Voters data</h4>
-<div id="httpswww.lcv.org" class="section level5">
-<h5><a href="https://www.lcv.org/" class="uri">https://www.lcv.org/</a></h5>
+</div>
+<div id="league-of-conservative-voters-data-httpswww.lcv.org" class="section level4">
+<h4>League of Conservative Voters data (<a href="https://www.lcv.org/" class="uri">https://www.lcv.org/</a>)</h4>
 <pre class="r"><code>dat_senate &lt;- read.csv(file.senate, header=T, stringsAsFactors = FALSE)
 dat_s &lt;- dat_senate %&gt;% dplyr::select(State, X1997:X2021)
 dat_s&lt;-dat_s %&gt;% gather(Year, senate, X1997:X2021)
@@ -1699,11 +1702,10 @@ dat_lcv$Year &lt;- as.factor(dat_lcv$Year)
 ave_lcv &lt;- dat_lcv %&gt;% group_by(Year) %&gt;% summarise(m_lcv = mean(lcv)) 
 data_lcv &lt;- merge(dat_lcv, ave_lcv, by=&quot;Year&quot;)</code></pre>
 </div>
+<div id="co2-data-metric-tons-of-energy-related-co2-emissions-per-capita-july-2023" class="section level4">
+<h4>CO2 data: metric tons of energy-related CO2 emissions per capita
+(July 2023)</h4>
 </div>
-</div>
-<div id="co2-data-metric-tons-of-energy-related-co2-emissions-per-capita-july-2023" class="section level2">
-<h2>CO2 data: metric tons of energy-related CO2 emissions per capita
-(July 2023)</h2>
 <div id="httpswww.eia.govenvironmentemissionsstate" class="section level4">
 <h4><a href="https://www.eia.gov/environment/emissions/state/" class="uri">https://www.eia.gov/environment/emissions/state/</a></h4>
 <pre class="r"><code>dat_CO2&lt;-read.csv(file.dat, header=T, skip=5, stringsAsFactors = FALSE)
@@ -1711,8 +1713,8 @@ dat_CO2&lt;-dat_CO2[-c(52,53,54,55,56,57,58,59,60), c(1,29:53)]
 dat_CO2 &lt;-dat_CO2 %&gt;% filter(State != &#39;District of Columbia&#39;)
 dat_PC_CO2&lt;-dat_CO2 %&gt;% gather(Year, pc_CO2, X1997:X2021)</code></pre>
 </div>
-<div id="co2-emissions-by-fuel-type-metric-tons-data-updated-july-2023" class="section level3">
-<h3>CO2 emissions by Fuel Type (metric tons) data updated July 2023</h3>
+<div id="co2-emissions-by-fuel-type-metric-tons-data-updated-july-2023" class="section level4">
+<h4>CO2 emissions by Fuel Type (metric tons) data updated July 2023</h4>
 <pre class="r"><code>## Coal
 dat_coal&lt;-read.csv(file.coal, header=T, skip=2, stringsAsFactors = FALSE)
 dat_coal&lt;-dat_coal %&gt;% filter(State != &#39;District of Columbia&#39;)
@@ -1740,8 +1742,8 @@ dat_gas$gas &lt;- as.numeric(dat_gas$gas)
 ## join CO2 data from 3 different fuel types
 dat_fuel &lt;- left_join(dat_coal, left_join(dat_petro, dat_gas, by= c(&quot;State&quot;, &quot;Year&quot;)), by=c(&quot;State&quot;, &quot;Year&quot;))</code></pre>
 </div>
-<div id="co2-emissions-by-end-use-sectors-metric-tons" class="section level3">
-<h3>CO2 emissions by end-use Sectors: metric tons</h3>
+<div id="co2-emissions-by-end-use-sectors-metric-tons" class="section level4">
+<h4>CO2 emissions by end-use Sectors (metric tons)</h4>
 <pre class="r"><code>## Residential
 dat_res&lt;-read.csv(file.res, header=T, skip=2, stringsAsFactors = FALSE)
 dat_res&lt;-dat_res %&gt;% filter(State != &#39;District of Columbia&#39;)
@@ -1749,7 +1751,7 @@ dat_res&lt;-dat_res %&gt;% dplyr::select(State, X1997:X2021)
 dat_res&lt;-dat_res[1:50,]
 dat_res&lt;- dat_res %&gt;% gather(Year, resid, X1997:X2021)
 
-### Transportation Sector;
+## Transportation Sector;
 dat_trans &lt;-read.csv(file.trans, header=T, skip=2, stringsAsFactors = FALSE)
 dat_trans &lt;-dat_trans %&gt;% filter(State != &#39;District of Columbia&#39;)
 dat_trans &lt;-dat_trans %&gt;% dplyr::select(State, X1997:X2021)
@@ -1783,27 +1785,28 @@ dat_elec$electric &lt;-as.numeric(dat_elec$electric)
 ## join CO2 data from 4 different sectors
 dat_sect &lt;- list(dat_res, dat_com, dat_ind, dat_elec, dat_trans) %&gt;% reduce(left_join, by = c(&quot;State&quot;, &quot;Year&quot;))</code></pre>
 </div>
-</div>
-<div id="join-total-fuel-type-and-sector-files" class="section level2">
-<h2>join total, fuel type and sector files</h2>
+<div id="join-total-pc-co2-co2-from-fuel-type-and-sector-files" class="section level4">
+<h4>Join total PC CO2, CO2 from fuel type and sector files</h4>
 <pre class="r"><code>pc_CO2_total &lt;- list(dat_fuel, dat_sect, dat_PC_CO2) %&gt;% reduce(left_join, by=c(&quot;State&quot;, &quot;Year&quot;))</code></pre>
-<div id="per-capita-gdp-2012-chained-dollar-data-in-thousands-both-pop-and-real-gdp" class="section level3">
-<h3>Per Capita GDP (2012 chained dollar): data in thousands both pop and
-real GDP</h3>
-<div id="httpswww.eia.govstatesedsseds-data-complete.phpsidusstatisticsindicators" class="section level4">
-<h4><a href="https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators" class="uri">https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators</a></h4>
 </div>
-<div id="coastal-data-httpsworldpopulationreview.comstate-rankingsstates-with-the-most-coastline" class="section level4">
-<h4>Coastal data: <a href="https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline" class="uri">https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline</a></h4>
+<div id="per-capita-gdp-2012-chained-dollar-data-in-thousands-both-pop-and-real-gdp" class="section level4">
+<h4>Per Capita GDP (2012 chained dollar): data in thousands both pop and
+real GDP</h4>
+<div id="httpswww.eia.govstatesedsseds-data-complete.phpsidusstatisticsindicators" class="section level5">
+<h5><a href="https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators" class="uri">https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators</a></h5>
+</div>
+<div id="coastal-data-httpsworldpopulationreview.comstate-rankingsstates-with-the-most-coastline" class="section level5">
+<h5>Coastal data: <a href="https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline" class="uri">https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline</a></h5>
 <pre class="r"><code>pop &lt;- read.csv(file.pop, header=T, stringsAsFactors = FALSE)
 pop &lt;- pop %&gt;% gather(Year, population, X1997:X2021)
 
-#convert population in 1000 to millions
+## convert population in 1000 to millions
 pop_m &lt;- pop %&gt;% dplyr::mutate(pop_mi = population/1000)
 pop_m &lt;- pop_m %&gt;% dplyr::select(1, 2, 3, 5)</code></pre>
 </div>
-<div id="real-gdp-2012" class="section level4">
-<h4>Real GDP (2012 $)</h4>
+</div>
+<div id="real-gdp-2012-international" class="section level4">
+<h4>Real GDP (2012 international $)</h4>
 <pre class="r"><code>real_gdp &lt;-read.csv(file.gdp, header=T, stringsAsFactors = FALSE)
 real_gdp &lt;- real_gdp %&gt;% gather(Year, r_gdp, X1997:X2021)
 
@@ -1811,15 +1814,15 @@ p_rgdp &lt;- left_join(pop_m, real_gdp, by = c(&quot;State.Abb&quot;, &quot;Year
 p_rgdp &lt;- p_rgdp %&gt;% mutate(pc_rgdp = floor(r_gdp/pop_mi))  ## per capita GDP for each state
 
 ## average GDP for each year (calculated to distinguish between rich and poor states)
-ave_gdp &lt;- p_rgdp %&gt;% group_by(Year) %&gt;% summarise(m_gdp=mean(pc_rgdp))  ## mean  per capita GDP by year 
+ave_gdp &lt;- p_rgdp %&gt;% group_by(Year) %&gt;% summarise(m_gdp=mean(pc_rgdp)) 
 p_gdp &lt;- merge(p_rgdp, ave_gdp, by=&quot;Year&quot;)</code></pre>
 </div>
-</div>
-<div id="state-abbreviation" class="section level3">
-<h3>State Abbreviation</h3>
+<div id="state-abbreviation" class="section level4">
+<h4>State Abbreviation</h4>
 <pre class="r"><code>names(state.abb) &lt;- state.name
 state.abbr &lt;-data.frame(state.abb)
 state_a &lt;- setNames(cbind(rownames(state.abbr), state.abbr, row.names = NULL), c(&quot;State&quot;, &quot;State.Abb&quot;))</code></pre>
+</div>
 <div id="state-abbreviation-1" class="section level4">
 <h4>State Abbreviation</h4>
 <pre class="r"><code>## merge GDP and state abbreviation files
@@ -1851,8 +1854,8 @@ deg_days &lt;- merge(degree_days, degree_av, by=&quot;Year&quot;)
 dg_days &lt;- deg_days %&gt;% dplyr::select(-State.Abb)</code></pre>
 </div>
 </div>
-<div id="expenditure-data" class="section level4">
-<h4>Expenditure data</h4>
+<div id="expenditure-in-energy-data" class="section level4">
+<h4>Expenditure in energy data</h4>
 <div id="httpswww.eia.govstatesedsseds-data-complete.phpsidus-1" class="section level5">
 <h5><a href="https://www.eia.gov/state/seds/seds-data-complete.php?sid=US" class="uri">https://www.eia.gov/state/seds/seds-data-complete.php?sid=US</a></h5>
 <pre class="r"><code>dexpend &lt;-read.csv(file.expend, header=T, skip=2, stringsAsFactors = FALSE)
@@ -1867,9 +1870,8 @@ dat_expend &lt;- merge(state_a, dat_expend, by = &quot;State.Abb&quot;)
 dat_expend &lt;- dat_expend %&gt;% dplyr::select(-State.Abb)</code></pre>
 </div>
 </div>
-</div>
-<div id="order-data" class="section level3">
-<h3>Order Data</h3>
+<div id="order-data" class="section level4">
+<h4>Order Data</h4>
 <pre class="r"><code>pc_CO2_total &lt;- pc_CO2_total[order(pc_CO2_total$State, pc_CO2_total$Year),]
 dat_party &lt;- dat_party[order(dat_party$State, dat_party$Year),]
 pc_gdp &lt;- pc_gdp[order(pc_gdp$State, pc_gdp$Year),]
@@ -1877,25 +1879,26 @@ dat_lcv &lt;-dat_lcv[order(dat_lcv$State, dat_lcv$Year),]
 dat_expend &lt;- dat_expend[order(dat_expend$State, dat_expend$Year),]
 dg_days &lt;- dg_days[order(dg_days$State, dg_days$Year),]</code></pre>
 </div>
-<div id="merge-data.frames-energy-consumption-converted-to-1-million-btu-per-capita" class="section level3">
-<h3>Merge data.frames (energy consumption converted to 1 million Btu per
-capita)</h3>
+<div id="merge-data.frames" class="section level4">
+<h4>Merge data.frames</h4>
 <pre class="r"><code>dat_all &lt;- list(pc_gdp, pc_CO2_total, dat_party, dg_days, data_lcv, dat_expend) %&gt;% reduce(left_join, by = c(&quot;State&quot;, &quot;Year&quot;))
 
 dat_all$Year &lt;- stringr::str_replace(dat_all$Year, &quot;X&quot;, &quot;&quot;)
 
+## calculations of per capita CO2 from fuel use/end-use sectors 
 dat &lt;- dat_all %&gt;% mutate(pc_coal=coal/pop_mi, pc_petro = petro/pop_mi, pc_gas = gas/pop_mi,
                           pc_comm=comm/pop_mi, pc_res=resid/pop_mi, pc_ind=indust/pop_mi, 
                           pc_elec=electric/pop_mi, pc_trans=transport/pop_mi)
 
+## Classification by income, climatic condition, energy expenditure, and LCV scores
 dat &lt;- dat %&gt;% mutate(in_class = ifelse(pc_rgdp &gt;= m_gdp, &quot;Rich&quot;, &quot;Poor&quot;)) %&gt;% 
   mutate(HDD = ifelse(hdays &gt;= m_hdd, &quot;High_hdays&quot;, &quot;Low_hdays&quot;)) %&gt;% 
   mutate(CDD = ifelse(cdays &gt;= m_cdd, &quot;High_cdays&quot;, &quot;Low_cdays&quot;)) %&gt;%
   mutate(HL_Expend = ifelse(expend &gt;= m_expend, &quot;High_Exp&quot;, &quot;Low_ExP&quot;)) %&gt;%
   mutate(HL_LCV=ifelse(lcv &gt;= m_lcv, &quot;High_LCV&quot;, &quot;Low_LCV&quot;))</code></pre>
 </div>
-<div id="view-data" class="section level3">
-<h3>View Data</h3>
+<div id="view-data" class="section level4">
+<h4>View Data</h4>
 <pre class="r"><code>rmarkdown::paged_table(dat, options = list(rows.print = 20))</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
@@ -1907,7 +1910,6 @@ dat &lt;- dat %&gt;% mutate(in_class = ifelse(pc_rgdp &gt;= m_gdp, &quot;Rich&qu
 <h3>Write Output</h3>
 <pre class="r"><code>file.output &lt;- file.path(dir.outdata, &quot;dat_ineq.csv&quot;)
 write.table(dat, file.output, sep=&quot;,&quot;, row.names=FALSE, col.names=TRUE, quote=FALSE)</code></pre>
-</div>
 </div>
 
 

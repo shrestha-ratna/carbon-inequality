@@ -50,7 +50,8 @@ file.expend <- file.path(dir.data, "energy_expenditure_pc_2021.csv")
 ```
 
 
-### Cook's Political Voting Index data
+
+#### Presidential election data (https://www.cookpolitical.com/cook-pvi)
 ```{r tidy=TRUE}
 dat_cook <- read.csv(file.pvg, header=T, skip=1, stringsAsFactors = FALSE)
 data_pvg <- dat_cook %>% dplyr::select(State, PVG_2020, PVG_2016, PVG_2012, PVG_2008, PVG_2004, PVG_2000, PVG_1996)
@@ -65,14 +66,14 @@ dat_pvg<- dat_state_pvg %>% gather(Year, PVG, -State)
 ```
 
 #### Party color determination of each state in each presidential election cycle
+##### PVG = Democratic candidate's votes - Republican candidate's votes 
 ```{r tidy=TRUE}
 dat_party <- dat_pvg %>% mutate(Party=ifelse(PVG >=0, "Dem", "Rep"))
 dat_party <- dat_party %>% dplyr::select(State, Year, PVG, Party)
 dat_party$Party<-as.factor(dat_party$Party)
 ```
 
-#### League of Conservative Voters data
-##### https://www.lcv.org/
+#### League of Conservative Voters data (https://www.lcv.org/)
 ```{r tidy=TRUE}
 dat_senate <- read.csv(file.senate, header=T, stringsAsFactors = FALSE)
 dat_s <- dat_senate %>% dplyr::select(State, X1997:X2021)
@@ -91,7 +92,7 @@ data_lcv <- merge(dat_lcv, ave_lcv, by="Year")
 ```
 
 
-## CO2 data: metric tons of energy-related CO2 emissions per capita (July 2023)
+#### CO2 data: metric tons of energy-related CO2 emissions per capita (July 2023)
 #### https://www.eia.gov/environment/emissions/state/
 ```{r tidy=TRUE}
 dat_CO2<-read.csv(file.dat, header=T, skip=5, stringsAsFactors = FALSE)
@@ -100,7 +101,7 @@ dat_CO2 <-dat_CO2 %>% filter(State != 'District of Columbia')
 dat_PC_CO2<-dat_CO2 %>% gather(Year, pc_CO2, X1997:X2021)
 ```
 
-### CO2 emissions by Fuel Type (metric tons) data updated July 2023
+#### CO2 emissions by Fuel Type (metric tons) data updated July 2023
 ```{r tidy=TRUE}
 ## Coal
 dat_coal<-read.csv(file.coal, header=T, skip=2, stringsAsFactors = FALSE)
@@ -130,7 +131,7 @@ dat_gas$gas <- as.numeric(dat_gas$gas)
 dat_fuel <- left_join(dat_coal, left_join(dat_petro, dat_gas, by= c("State", "Year")), by=c("State", "Year"))
 ```
 
-### CO2 emissions by end-use Sectors: metric tons 
+#### CO2 emissions by end-use Sectors (metric tons) 
 ```{r tidy=TRUE}
 
 ## Residential
@@ -140,7 +141,7 @@ dat_res<-dat_res %>% dplyr::select(State, X1997:X2021)
 dat_res<-dat_res[1:50,]
 dat_res<- dat_res %>% gather(Year, resid, X1997:X2021)
 
-### Transportation Sector;
+## Transportation Sector;
 dat_trans <-read.csv(file.trans, header=T, skip=2, stringsAsFactors = FALSE)
 dat_trans <-dat_trans %>% filter(State != 'District of Columbia')
 dat_trans <-dat_trans %>% dplyr::select(State, X1997:X2021)
@@ -175,24 +176,24 @@ dat_elec$electric <-as.numeric(dat_elec$electric)
 dat_sect <- list(dat_res, dat_com, dat_ind, dat_elec, dat_trans) %>% reduce(left_join, by = c("State", "Year"))
 ```
 
-## join total, fuel type and sector files
+#### Join total PC CO2, CO2 from fuel type and sector files
 ```{r include=TRUE}
 pc_CO2_total <- list(dat_fuel, dat_sect, dat_PC_CO2) %>% reduce(left_join, by=c("State", "Year"))
 ```
 
-### Per Capita GDP (2012 chained dollar): data in thousands both pop and real GDP
-#### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators
-#### Coastal data: https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline
+#### Per Capita GDP (2012 chained dollar): data in thousands both pop and real GDP
+##### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US#StatisticsIndicators
+##### Coastal data: https://worldpopulationreview.com/state-rankings/states-with-the-most-coastline
 ```{r tidy=TRUE}
 pop <- read.csv(file.pop, header=T, stringsAsFactors = FALSE)
 pop <- pop %>% gather(Year, population, X1997:X2021)
 
-#convert population in 1000 to millions
+## convert population in 1000 to millions
 pop_m <- pop %>% dplyr::mutate(pop_mi = population/1000)
 pop_m <- pop_m %>% dplyr::select(1, 2, 3, 5)
 ```
 
-#### Real GDP (2012 $)
+#### Real GDP (2012 international $)
 ```{r tidy=TRUE}
 real_gdp <-read.csv(file.gdp, header=T, stringsAsFactors = FALSE)
 real_gdp <- real_gdp %>% gather(Year, r_gdp, X1997:X2021)
@@ -201,11 +202,11 @@ p_rgdp <- left_join(pop_m, real_gdp, by = c("State.Abb", "Year"))
 p_rgdp <- p_rgdp %>% mutate(pc_rgdp = floor(r_gdp/pop_mi))  ## per capita GDP for each state
 
 ## average GDP for each year (calculated to distinguish between rich and poor states)
-ave_gdp <- p_rgdp %>% group_by(Year) %>% summarise(m_gdp=mean(pc_rgdp))  ## mean  per capita GDP by year 
+ave_gdp <- p_rgdp %>% group_by(Year) %>% summarise(m_gdp=mean(pc_rgdp)) 
 p_gdp <- merge(p_rgdp, ave_gdp, by="Year")
 ```
 
-### State Abbreviation
+#### State Abbreviation
 ```{r tidy=TRUE}
 names(state.abb) <- state.name
 state.abbr <-data.frame(state.abb)
@@ -243,7 +244,7 @@ deg_days <- merge(degree_days, degree_av, by="Year")
 dg_days <- deg_days %>% dplyr::select(-State.Abb)
 ```
 
-#### Expenditure data
+#### Expenditure in energy data
 ##### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US
 ```{r tidy=TRUE}
 dexpend <-read.csv(file.expend, header=T, skip=2, stringsAsFactors = FALSE)
@@ -258,7 +259,7 @@ dat_expend <- merge(state_a, dat_expend, by = "State.Abb")
 dat_expend <- dat_expend %>% dplyr::select(-State.Abb)
 ```
 
-### Order Data
+#### Order Data
 ```{r tidy=TRUE}
 pc_CO2_total <- pc_CO2_total[order(pc_CO2_total$State, pc_CO2_total$Year),]
 dat_party <- dat_party[order(dat_party$State, dat_party$Year),]
@@ -268,16 +269,18 @@ dat_expend <- dat_expend[order(dat_expend$State, dat_expend$Year),]
 dg_days <- dg_days[order(dg_days$State, dg_days$Year),]
 ```
 
-### Merge data.frames (energy consumption converted to 1 million Btu per capita)
+#### Merge data.frames
 ```{r tidy=TRUE}
 dat_all <- list(pc_gdp, pc_CO2_total, dat_party, dg_days, data_lcv, dat_expend) %>% reduce(left_join, by = c("State", "Year"))
 
 dat_all$Year <- stringr::str_replace(dat_all$Year, "X", "")
 
+## calculations of per capita CO2 from fuel use/end-use sectors 
 dat <- dat_all %>% mutate(pc_coal=coal/pop_mi, pc_petro = petro/pop_mi, pc_gas = gas/pop_mi,
                           pc_comm=comm/pop_mi, pc_res=resid/pop_mi, pc_ind=indust/pop_mi, 
                           pc_elec=electric/pop_mi, pc_trans=transport/pop_mi)
 
+## Classification by income, climatic condition, energy expenditure, and LCV scores
 dat <- dat %>% mutate(in_class = ifelse(pc_rgdp >= m_gdp, "Rich", "Poor")) %>% 
   mutate(HDD = ifelse(hdays >= m_hdd, "High_hdays", "Low_hdays")) %>% 
   mutate(CDD = ifelse(cdays >= m_cdd, "High_cdays", "Low_cdays")) %>%
@@ -285,7 +288,7 @@ dat <- dat %>% mutate(in_class = ifelse(pc_rgdp >= m_gdp, "Rich", "Poor")) %>%
   mutate(HL_LCV=ifelse(lcv >= m_lcv, "High_LCV", "Low_LCV"))
 ```
 
-### View Data
+#### View Data
 ```{r, layout="l-body-outset"}
 rmarkdown::paged_table(dat, options = list(rows.print = 20))
 ```
