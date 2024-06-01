@@ -1,19 +1,18 @@
-# Red versus blue states: inequality in energy-related CO2 emissions in the United States
+# Red versus blue states: inequality in energy-related CO2 emissions in the United States (1997-2021)
 
 
-**Ratna K. Shrestha** (Vancouver School of Economics, University of British Columbia) <br/>
+**Ratna K. Shrestha** (Vancouver School of Economics and Sauder School of Business, University of British Columbia) <br/>
 
 
 ### Abstract
-> The partisan divide over climate change issues has posed a substantial hurdle to implementing a unified climate policy in the U.S. Here, I employ the Shapley value decomposition approach to measure the partisan gap in state-level per capita energy-related CO2 emissions. Despite a decrease in overall carbon emissions and stable per capita carbon inequality between states (measured by the Gini index), the inequality between ‘red’ and ‘blue’ states widened over the period between 1997 and 2021. Throughout the period, the divide by political color was more pronounced than that by many other dimensions, such as income, climatic condition, and geographic location. Driven primarily by disparity in coal use for electricity generation, the partisan gap was worse in 2021 than in 2020. While the partisan gap intensified, the carbon distribution changed from being top-concentrated to bottom-concentrated between 1997 and 2019, only to be reversed in 2020 and 2021.  
-.  
+> The partisan divide over climate change issues in the U.S. has been increasing over time, particularly after the signing of the Kyoto protocol in 1997. This divide has posed a substantial hurdle to implementing a unified climate policy in the U.S. In this paper, I employ the Shapley value decomposition approach to measure the partisan gap in state-level per capita energy-related CO2 emissions. Despite a decrease in overall carbon emissions and stable per capita carbon inequality between states (measured by the Gini index), the inequality between the so called ‘red’ and ‘blue’ states widened over the period between 1997 and 2021. This is true regardless of whether each state is treated as a unit of analysis or assigned a weight equal to its population. Throughout the period, the divide by political party color was more pronounced than that by many other dimensions, such as income, climatic condition, and geographic location. These results also hold true when Mean Log Deviation is used as the measure of inequality. Driven primarily by disparity in transportation sector and coal use for electricity generation, the partisan gap was worse in 2021 than in 2020. While the partisan gap intensified, the carbon distribution changed from being top-concentrated to bottom-concentrated between 1997 and 2019, only to be reversed in the aftermath of the coronavirus pandemic in 2020 and subsequent economic recovery in 2021.   
 
 
 #### Code availability
 R-codes used for data analysis is available at [https://github.com/shrestha-ratna/carbon-inequality]<br/><br/>
 
 #### Citation
-Shrestha, Ratna K. (2024), **Red versus blue states: inequality in energy-related CO2 emissions in the United States** (*submitted*) 
+Shrestha, Ratna K. (2024), **Red versus blue states: inequality in energy-related CO2 emissions in the United States (1997-2021)** (*submitted*) 
 <br/><br/>
 
 #### Corresponding author

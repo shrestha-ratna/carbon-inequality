@@ -1,0 +1,51 @@
+State,pc_CO2,Party,HDD,CDD,in_class,HL_Expend,HL_price
+Alabama,21.5,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+Alaska,53,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price
+Arizona,11.4,Dem,Low_hdays,High_cdays,Poor,Low_ExP,High_price
+Arkansas,20.5,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+California,8.3,Dem,Low_hdays,Low_cdays,Rich,Low_ExP,High_price
+Colorado,14.7,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+Connecticut,10.1,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+Delaware,12.9,Dem,Low_hdays,Low_cdays,Rich,Low_ExP,High_price
+Florida,10.4,Rep,Low_hdays,High_cdays,Poor,Low_ExP,High_price
+Georgia,11.5,Dem,Low_hdays,High_cdays,Poor,Low_ExP,Low_price
+Hawaii,12,Dem,Low_hdays,High_cdays,Poor,High_Exp,High_price
+Idaho,10.8,Rep,High_hdays,Low_cdays,Poor,Low_ExP,Low_price
+Illinois,14.5,Dem,High_hdays,Low_cdays,Rich,Low_ExP,Low_price
+Indiana,24.4,Rep,High_hdays,Low_cdays,Poor,High_Exp,Low_price
+Iowa,22.9,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price
+Kansas,20.3,Rep,Low_hdays,High_cdays,Rich,Low_ExP,Low_price
+Kentucky,24.7,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+Louisiana,40.8,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+Maine,10.5,Dem,High_hdays,Low_cdays,Poor,High_Exp,High_price
+Maryland,8.5,Dem,Low_hdays,High_cdays,Rich,Low_ExP,High_price
+Massachusetts,8,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+Michigan,14.7,Dem,High_hdays,Low_cdays,Poor,Low_ExP,Low_price
+Minnesota,14.6,Dem,High_hdays,Low_cdays,Rich,Low_ExP,Low_price
+Mississippi,21.4,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+Missouri,19,Rep,Low_hdays,High_cdays,Poor,Low_ExP,Low_price
+Montana,25.8,Rep,High_hdays,Low_cdays,Poor,High_Exp,Low_price
+Nebraska,24,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price
+Nevada,12.5,Dem,Low_hdays,High_cdays,Poor,Low_ExP,High_price
+New Hampshire,9.6,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+New Jersey,9.6,Dem,Low_hdays,Low_cdays,Rich,Low_ExP,High_price
+New Mexico,21.7,Dem,Low_hdays,Low_cdays,Poor,Low_ExP,High_price
+New York,7.9,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+North Carolina,10.9,Rep,Low_hdays,High_cdays,Poor,Low_ExP,High_price
+North Dakota,72.7,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price
+Ohio,16.5,Rep,High_hdays,Low_cdays,Poor,Low_ExP,Low_price
+Oklahoma,22,Rep,Low_hdays,High_cdays,Poor,High_Exp,Low_price
+Oregon,9.1,Dem,High_hdays,Low_cdays,Poor,Low_ExP,High_price
+Pennsylvania,16.4,Dem,High_hdays,Low_cdays,Poor,Low_ExP,Low_price
+Rhode Island,9.7,Dem,High_hdays,Low_cdays,Poor,Low_ExP,High_price
+South Carolina,13.4,Rep,Low_hdays,High_cdays,Poor,Low_ExP,Low_price
+South Dakota,16.9,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price
+Tennessee,13.3,Rep,Low_hdays,High_cdays,Poor,Low_ExP,Low_price
+Texas,22.4,Rep,Low_hdays,High_cdays,Rich,High_Exp,Low_price
+Utah,18.6,Rep,High_hdays,Low_cdays,Rich,Low_ExP,Low_price
+Vermont,8.6,Dem,High_hdays,Low_cdays,Poor,Low_ExP,High_price
+Virginia,11.3,Dem,Low_hdays,Low_cdays,Rich,Low_ExP,Low_price
+Washington,9.5,Dem,High_hdays,Low_cdays,Rich,Low_ExP,High_price
+West Virginia,49.5,Rep,Low_hdays,Low_cdays,Poor,High_Exp,Low_price
+Wisconsin,15.7,Dem,High_hdays,Low_cdays,Poor,Low_ExP,Low_price
+Wyoming,94.3,Rep,High_hdays,Low_cdays,Rich,High_Exp,Low_price

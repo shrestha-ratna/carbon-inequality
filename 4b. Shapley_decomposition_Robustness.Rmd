@@ -129,7 +129,7 @@ dlcv$Weight <- factor(dlcv$Weight, levels=c("Population weighted","Unweighted"))
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
 plcv<-ggplot(dlcv, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue", "red")) + 
+ scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED")) +   
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "High and low LCV score states", y = "")+
   theme(text=element_text(size=8))+
@@ -225,7 +225,7 @@ dexp$Weight <- factor(dexp$Weight, levels=c("Population weighted","Unweighted"))
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
 pexpend<-ggplot(dexp, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue", "red")) + 
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED")) +  
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "High and low energy expenditure states", y = "")+
   theme(text=element_text(size=8))+
@@ -325,7 +325,7 @@ dincome$Weight <- factor(dincome$Weight, levels=c("Population weighted","Unweigh
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
 pincome<-ggplot(dincome, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue", "red")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED")) +  
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "Rich and poor states", y = "")+
   theme(text=element_text(size=8))+
@@ -352,7 +352,6 @@ pincome<-ggplot(dincome, aes(x=Year))+
 decomp_lcv_exp_in <-ggarrange(pexpend, plcv, pincome, labels = c("a", "b", "c"), hjust = -2.0, 
                                 font.label = list(size = 8, color = "black", face = "bold"), 
                                 ncol = 3, nrow = 1, legend="none")
-decomp_lcv_exp_in
 ```
 
 #### Decomposition by Geography
@@ -450,8 +449,9 @@ pgeo<-ggplot(dgeo, aes(x=Year))+
   guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=6))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+  theme(legend.text = element_text(size=8))+
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED")) 
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
 ```
 
 #### Decomposition by Heating Degree Days
@@ -548,8 +548,9 @@ pheat<-ggplot(dheat, aes(x=Year))+
   theme(legend.spacing.y = unit(0.6, "lines"))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=7))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+  theme(legend.text = element_text(size=8))+
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED")) 
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
 ```
 
 #### Decomposition by Cooling Degree Days
@@ -647,8 +648,9 @@ pcool<-ggplot(dcool, aes(x=Year))+
   guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=7))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
+  theme(legend.text = element_text(size=8))+
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF", "#ED68ED"))
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group", "Overlap"), values=c("black", "green","blue", "red"))
 ```
 
 #### Decomposition Plot by Geography and Heating/Cooling Degree Days
@@ -657,15 +659,12 @@ pcool<-ggplot(dcool, aes(x=Year))+
 decomp_geo_ddays <-ggarrange(pgeo, pheat, pcool, labels = c("d", "e", "f"), hjust = -2.0, 
                                 font.label = list(size = 8, color = "black", face = "bold"), 
                                 ncol = 3, nrow = 1, common.legend = TRUE, legend ="bottom")
-decomp_geo_ddays
 ```
 
 #### Decomposition Plots Together
-```{r fig.height = 5, fig.width = 7, fig.align = "center"}
+```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 decomp_robust <- cowplot::plot_grid(decomp_lcv_exp_in, decomp_geo_ddays, nrow=2, rel_heights = c(1, 1.15))
-robust_decompostion <- annotate_figure(decomp_robust, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
-
-robust_decompostion
+robust_decompostion <- annotate_figure(decomp_robust, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=9))
 
 ## final plot output
 file.plot <- file.path(dir.plot, "robust_decomp.png")

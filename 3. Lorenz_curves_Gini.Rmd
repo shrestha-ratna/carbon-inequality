@@ -105,10 +105,10 @@ gini_sector <- dat_p %>% group_by(Year) %>%
 
 gini_sector <- reshape2::melt(gini_sector, id.vars="Year")
 
-gini_sector$Group <- ifelse((gini_sector$variable == "gini_ind") |(gini_sector$variable == "wtgini_ind"), "Indust",
-                    ifelse((gini_sector$variable == "gini_elc") | (gini_sector$variable == "wtgini_elc"), "Electric",
-                    ifelse((gini_sector$variable == "gini_res") | (gini_sector$variable == "wtgini_res"), "Resident",
-                    ifelse((gini_sector$variable == "gini_tra") | (gini_sector$variable == "wtgini_tra"), "Trans", "Comm"))))
+gini_sector$Group <- ifelse((gini_sector$variable == "gini_ind")|(gini_sector$variable == "wtgini_ind"),"Indust",
+                    ifelse((gini_sector$variable == "gini_elc") |(gini_sector$variable == "wtgini_elc"),"Electric",
+                    ifelse((gini_sector$variable == "gini_res") |(gini_sector$variable == "wtgini_res"),"Resident",
+                    ifelse((gini_sector$variable == "gini_tra") |(gini_sector$variable == "wtgini_tra"),"Trans", "Comm"))))
 
 gini_sector$Weight <- ifelse((gini_sector$variable == "gini_ind") | (gini_sector$variable == "gini_elc") | (gini_sector$variable == "gini_res")|(gini_sector$variable == "gini_com") | (gini_sector$variable == "gini_tra"),"Unweighted", "Population Weighted")
 
@@ -146,7 +146,7 @@ sector1<-ggplot(gini_sector, aes(x=Year))+
 
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 fuel_sector_Gini <- ggarrange(fuel1, sector1, labels = c("a", "b"), hjust = -2, font.label = list(size = 8, color = "black", face = "bold"), ncol = 2, nrow = 1, legend = "bottom")
-fuel_sector_Gini
+
 file.plot <- file.path(dir.plot, "fuel_sector_Gini.png")
 png(file.plot, height=4, width=7, units="in", bg="white", res=300)
 fuel_sector_Gini
@@ -175,6 +175,11 @@ dat_97 <- dat_p %>% filter(Year== 1997)
 dat_19 <- dat_p %>% filter(Year== 2019)
 dat_20 <- dat_p %>% filter(Year== 2020)
 dat_21 <- dat_p %>% filter(Year== 2021)
+
+## output data
+dat_21_sel <- dat_21 %>% select(State, pc_CO2, Party, HDD, CDD, in_class, HL_Expend,  HL_price)
+file.output <- file.path(dir.outdata, "dat_21_selected.csv")
+write.table(dat_21_sel, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
 ```
 
 </br>
@@ -187,6 +192,10 @@ wc_97$one <- "1"
 wc_97$one <-as.numeric(wc_97$one)
 wc_97$cum_unit = cumsum(wc_97$one*wc_97$pop_mi)/sum(wc_97$one*wc_97$pop_mi)  ## ranked by per capita CO2
 wc_97$cum_co2 = cumsum(wc_97$pc_CO2*wc_97$pop_mi)/sum(wc_97$pc_CO2*wc_97$pop_mi) ## cumulative per capita CO2
+
+wc_97_ex <- wc_97 %>% select(State.Abb, State, pop_mi, pc_CO2, cum_unit, cum_co2)
+file.output <- file.path(dir.outdata, "cumulative_co2_1997.csv")
+write.table(wc_97_ex, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
 
 ## pc_CO2 from coal
 coal_97 <- dat_97 %>% arrange(pc_coal)
@@ -214,8 +223,8 @@ gas_97$cum_gas = cumsum(gas_97$pc_gas*gas_97$pop_mi)/sum(gas_97$pc_gas*gas_97$po
 
 #### Population-weighted Lorenz curves (total PC_CO2 and PC_CO2 from fuels) 1997
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Overall (0.244, 1.11)" = "green", "Coal (0.462, 0.79)"= "red", "Petroleum (0.162, 1.32)" = "black", 
-             "Natural Gas (0.327, 1.18)" = "blue")
+colors <- c("Overall (0.244, 1.11)" = "green", "Coal (0.462, 0.79)"= "#080808", "Petroleum (0.162, 1.32)" = "brown", 
+             "Natural Gas (0.327, 1.18)" = "#00A9FF")
 
 fuel97 <- ggplot() + 
   geom_abline(color = "grey")+
@@ -246,6 +255,10 @@ wc_19$one <-as.numeric(wc_19$one)
 wc_19$cum_unit = cumsum(wc_19$one*wc_19$pop_mi)/sum(wc_19$one*wc_19$pop_mi)  ## cum_unit ranked by per capita CO2
 wc_19$cum_co2 = cumsum(wc_19$pc_CO2*wc_19$pop_mi)/sum(wc_19$pc_CO2*wc_19$pop_mi)  ## cumulative per capita CO2
 
+wc_19_ex <- wc_19 %>% select(State.Abb, State, pop_mi, pc_CO2, cum_unit, cum_co2)
+file.output <- file.path(dir.outdata, "cumulative_co2_2019.csv")
+write.table(wc_19_ex, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
+
 coal_19 <- dat_19 %>% arrange(pc_coal)
 coal_19$one <- "1" 
 coal_19$one <-as.numeric(coal_19$one)
@@ -268,8 +281,8 @@ gas_19$cum_gas = cumsum(gas_19$pc_gas*gas_19$pop_mi)/sum(gas_19$pc_gas*gas_19$po
 
 #### Lorenz curves 2019
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Overall (0.238, 0.92)" = "green", "Coal (0.570, 0.90)"= "red", "Petroleum (0.149, 1.32)" = "black", 
-             "Natural Gas (0.265, 1.12)" = "blue")
+colors <- c("Overall (0.238, 0.92)" = "green", "Coal (0.570, 0.90)"= "#080808", "Petroleum (0.149, 1.32)" = "brown", 
+             "Natural Gas (0.265, 1.12)" = "#00A9FF")
 
 fuel19 <- ggplot() + 
   geom_abline(color = "grey")+
@@ -322,8 +335,8 @@ gas_20$cum_gas = cumsum(gas_20$pc_gas*gas_20$pop_mi)/sum(gas_20$pc_gas*gas_20$po
 
 #### Lorenz curves: 2020
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Overall (0.255, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
-             "Natural Gas (0.271, 1.08)" = "blue")
+colors <- c("Overall (0.255, 1.11)" = "green", "Coal (0.595, 0.76)"= "#080808", "Petroleum (0.175, 1.22)" = "brown", 
+             "Natural Gas (0.271, 1.08)" = "#00A9FF")
 
 fuel20 <- ggplot() + 
   geom_abline(color = "grey")+
@@ -374,8 +387,8 @@ gas_21$cum_gas = cumsum(gas_21$pc_gas*gas_21$pop_mi)/sum(gas_21$pc_gas*gas_21$po
 
 #### Lorenz curves 2021
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Overall (0.250, 1.11)" = "green", "Coal (0.595, 0.76)"= "red", "Petroleum (0.175, 1.22)" = "black", 
-             "Natural Gas (0.271, 1.08)" = "blue")
+colors <- c("Overall (0.250, 1.11)" = "green", "Coal (0.595, 0.76)"= "#080808", "Petroleum (0.175, 1.22)" = "brown", 
+             "Natural Gas (0.271, 1.08)" = "#00A9FF")
 
 fuel21 <- ggplot() + 
   geom_abline(color = "grey")+
@@ -399,10 +412,9 @@ fuel21 <- ggplot() +
 </br>
 
 #### Lorenz curves: overall and fuel type for 1997, 2019, 2020 and 2021
+
 ```{r fig.height = 2.5, fig.width = 7, fig.align = "center"}
 fuel_lorenz <- plot_grid(fuel97, NULL, fuel19, NULL, fuel20, NULL, fuel21, nrow=1, ncol=7, labels = "a", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 0, 1, 0, 1, 0, 1), align = "hv")
-
-fuel_lorenz
 ```
 
 </br>
@@ -465,13 +477,13 @@ com_97$cum_com = cumsum(com_97$pc_comm*com_97$pop_mi)/sum(com_97$pc_comm*com_97$
 
 #### Lorenz curve 1997
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Industrial (0.447, 1.16)" = "green", "Electricity (0.379, 0.83)" = "blue", "Residential (0.294, 0.80)" = "orange", "Commercial (0.258, 0.84)" = "red", "Transport (0.135, 1.12)" = "black")
+colors <- c("Industrial (0.447, 1.16)" = "#4682B4", "Electricity (0.379, 0.83)" = "darkorange", "Residential (0.294, 0.80)" = "purple", "Commercial (0.258, 0.84)" = "#43464B", "Transport (0.135, 1.12)" = "yellow")
 
 sector97 <- ggplot() + 
   geom_abline(color = "grey")+
   geom_line(aes(x=ind_97$cum_unit, y=ind_97$cum_ind, color = "Industrial (0.447, 1.16)"))+
   geom_line(aes(x=elc_97$cum_unit, y=elc_97$cum_elc, color = "Electricity (0.379, 0.83)"))+
-    geom_line(aes(x=res_97$cum_unit, y=res_97$cum_res, color = "Residential (0.294, 0.80)"))+
+  geom_line(aes(x=res_97$cum_unit, y=res_97$cum_res, color = "Residential (0.294, 0.80)"))+
   geom_line(aes(x=com_97$cum_unit, y=com_97$cum_com, color = "Commercial (0.258, 0.84)"))+
   geom_line(aes(x=tran_97$cum_unit, y=tran_97$cum_tran, color = "Transport (0.135, 1.12)"))+
   labs(x = "1997", y = "")+
@@ -525,7 +537,7 @@ com_19$cum_com = cumsum(com_19$pc_comm*com_19$pop_mi)/sum(com_19$pc_comm*com_19$
 
 #### Lorenz curve 2019
 ```{r fig.height = 2, fig.width = 5, fig.align = "center"}
-colors <- c("Industrial (0.511, 0.99)" = "green", "Electricity (0.394, 0.89)" = "blue", "Residential (0.339, 0.86)" = "orange", "Commercial (0.238, 0.88)" = "red", "Transport (0.108, 1.15)" = "black")
+colors <- c("Industrial (0.511, 0.99)" = "#4682B4", "Electricity (0.394, 0.89)" = "darkorange", "Residential (0.339, 0.86)" ="purple", "Commercial (0.238, 0.88)" = "#43464B", "Transport (0.108, 1.15)" = "yellow")
 
 
 sector19 <- ggplot() + 
@@ -586,7 +598,8 @@ com_20$cum_com = cumsum(com_20$pc_comm*com_20$pop_mi)/sum(com_20$pc_comm*com_20$
 
 #### Lorenz curves 2020
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Industrial (0.511, 1.02)" = "green", "Electricity (0.392, 0.87)" = "blue", "Residential (0.329, 0.88)" = "orange", "Commercial (0.230, 0.87)" = "red", "Transport (0.138, 1.17)" = "black")
+colors <- c("Industrial (0.511, 1.02)" = "#4682B4", "Electricity (0.392, 0.87)" = "darkorange", "Residential (0.329, 0.88)" = "purple", "Commercial (0.230, 0.87)" = "#43464B", "Transport (0.138, 1.17)" = "yellow")
+
 
 sector20 <- ggplot() + 
   geom_abline(color = "grey")+
@@ -645,14 +658,14 @@ com_21$cum_com = cumsum(com_21$pc_comm*com_21$pop_mi)/sum(com_21$pc_comm*com_21$
 
 #### Lorenz curves 2021
 ```{r fig.height = 3, fig.width = 5, fig.align = "center"}
-colors <- c("Industrial (0.517, 1.01)" = "green", "Electricity (0.395, 0.86)" = "blue", "Residential (0.326, 0.88)" = "orange", "Commercial (0.228, 0.87)" = "red", "Transport (0.132, 1.24)" = "black")
+colors <- c("Industrial (0.517, 1.01)" = "#2E6B8A", "Electricity (0.395, 0.86)" = "darkorange", "Residential (0.326, 0.88)" = "purple", "Commercial (0.228, 0.87)" = "#43464B", "Transport (0.132, 1.24)" = "yellow")
 
 
 sector21 <- ggplot() + 
   geom_abline(color = "grey")+
   geom_line(aes(x=ind_21$cum_unit, y=ind_21$cum_ind, color = "Industrial (0.517, 1.01)"))+
   geom_line(aes(x=elc_21$cum_unit, y=elc_21$cum_elc, color = "Electricity (0.395, 0.86)"))+
-    geom_line(aes(x=res_21$cum_unit, y=res_21$cum_res, color = "Residential (0.326, 0.88)"))+
+  geom_line(aes(x=res_21$cum_unit, y=res_21$cum_res, color = "Residential (0.326, 0.88)"))+
   geom_line(aes(x=com_21$cum_unit, y=com_21$cum_com, color = "Commercial (0.228, 0.87)"))+
   geom_line(aes(x=tran_21$cum_unit, y=tran_21$cum_tran, color = "Transport (0.132, 1.24)"))+
   labs(x = "2021", y = "")+
@@ -670,9 +683,9 @@ sector21 <- ggplot() +
 </br>
 
 #### Lorenz curves for all years by sectors
+
 ```{r fig.height = 3.0, fig.width = 7, fig.align = "center"}
 sector_lorenz <- plot_grid(sector97, sector19, sector20, sector21, nrow=1, ncol=4, labels = "b", label_size = 8, color = "black", face = "bold", hjust= -4, vjust = 1, rel_widths= c(1.1, 1, 1, 1), align = "hv")
-sector_lorenz
 ```
 
 </br>
@@ -681,8 +694,9 @@ sector_lorenz
 ```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 
 sector_fuel_lorenz <-ggarrange(fuel_lorenz, sector_lorenz,  ncol=1, nrow=2)
-sector_fuel_lorenz <- annotate_figure(sector_fuel_lorenz, left =text_grob("Cumulative per capita CO2", vjust=3, rot =90, size =8), bottom = text_grob("Cumulative population (ranked by respective per capita CO2)", vjust=0, size =8))
-sector_fuel_lorenz
+sector_fuel_lorenz <- annotate_figure(sector_fuel_lorenz, left =text_grob("Cumulative per capita CO2", vjust=3, 
+                      rot =90, size =8), bottom = text_grob("Cumulative population (ranked by respective per capita CO2)", 
+                      vjust=0, size =8))
 ```
 
 </br>
@@ -693,5 +707,64 @@ sector_fuel_lorenz
 file.plot <- file.path(dir.plot, "sector_fuel_lorenz.png")
 png(file.plot, height=5, width=7, units="in", bg= "white", res=300)
 sector_fuel_lorenz
+dev.off()
+```
+
+#### Hypothetical Lorenz curves with the same Gini but different LAC
+```{r tidy=TRUE}
+file.lorenz_lac <- file.path(dir.data, "lorenz_lac.csv")
+dat_ll <- read.csv(file.lorenz_lac, header=TRUE, stringsAsFactors=FALSE)
+```
+
+#### Gini and LAC
+```{r tidy=TRUE}
+gini_y12 <- dat_ll %>% summarise(giniy1 = gini(y1), giniy2 = gini(y2))
+
+lac_12 <- dat_ll %>% summarise(lac1 = Lasym(y1), lac2 = Lasym(y2))
+```
+
+#### method:Data preparation
+```{r}
+m1 <- dat_ll %>% arrange(y1)
+m1$one <- "1" 
+m1$one <-as.numeric(m1$one)
+m1$cum_u1 = cumsum(m1$one/sum(m1$one))
+m1$cum_y1 = cumsum(m1$y1/sum(m1$y1))
+
+m2 <- dat_ll %>% arrange(y2)
+m2$one <- "1" 
+m2$one <-as.numeric(m2$one)
+m2$cum_u2 = cumsum(m2$one/sum(m2$one))
+m2$cum_y2 = cumsum(m2$y2/sum(m2$y2))
+```
+
+#### Gini and LAC
+```{r tidy=TRUE}
+colors <- c("L1 (0.4, 1.07)" = "#ABA300", "L2 (0.4, 0.80)"= "#00A9FF")
+
+LL_plot <- ggplot() + 
+  geom_abline(linetype = "dashed", color = "grey")+
+  geom_line(aes(x=m1$cum_u1, y=m1$cum_y1, color = "L1 (0.4, 1.07)"))+
+  geom_line(aes(x=m2$cum_u2, y=m2$cum_y2, color = "L2 (0.4, 0.80)"))+
+  labs(x = "Cumulative share of population", y = "Cumulative share of CO2")+
+  theme(axis.title = element_text(size=8))+
+  theme(legend.background = element_rect(fill = "transparent")) +
+  theme(legend.title = element_blank(),legend.text = element_text(size = 8))+
+  #theme(axis.title.x = element_text(size=8))+
+  theme(legend.position= c(0.2, 0.88))+
+  theme(legend.key.width = unit(0.4, 'cm'), legend.key.height = unit(0.4, "cm"))+
+  theme(axis.text.y=element_text(size=6))+
+  theme(axis.text.x=element_text(size=6))+
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  #theme(plot.margin = unit(c(5.5, 1.5, 5.5, 1.5), "pt"))+
+  scale_color_manual(values = colors, breaks = names(colors)[c(1, 2)])
+```
+
+#### Lorenz plot all together (overall CO2, Sector and Fuel Type)
+```{r fig.height = 2.5, fig.width =3.25, fig.align = "center"}
+
+file.plot <- file.path(dir.plot, "LL_plot.png")
+png(file.plot, height= 2.5, width=3.25, units="in", bg="white", res=300)
+LL_plot
 dev.off()
 ```

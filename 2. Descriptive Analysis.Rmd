@@ -69,12 +69,11 @@ write.table(party_co2, file.output, sep=",", row.names=FALSE, col.names=TRUE, qu
 ```
 </br>
 
-#### Plot
+#### Plot: Mean CO2 Red, Blue and weighted Average
 ```{r tidy=TRUE}
 co2_p <- ggplot(party_co2_long, aes(x=Year))+
   geom_line(data = party_co2_long, aes(y=mvalue, color= factor(Party)), linewidth = 0.7)+
-  scale_color_manual(labels=c("Red states", "National average", "Blue states"),
-                     values = c("red", "green", "blue"))+
+  scale_color_manual(labels=c("Red states", "National average", "Blue states"), values = c("red", "green", "blue"))+
   ylab("")+
   xlab("")+
   scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2018, 2021)) +
@@ -143,14 +142,7 @@ fuel_p <- ggplot(data = d_fuel, aes(x = Year, y = mvalue, color=factor(Party))) 
 
 #### Merge plots (Overall and fuel type)
 ```{r tidy=TRUE}
-
 co2_fuel <- plot_grid(co2_p, fuel_p, nrow=1, ncol=2, labels = c("a", "b"), label_size = 8, color = "black", face = "bold", hjust=-2, rel_widths= c(0.6, 1))
-
-
-file.plot <- file.path(dir.plot, "co2_fuel.png")
-png(file.plot, height=2.5, width=7, units="in", bg="white", res=300)
-co2_fuel
-dev.off()
 ```
 </br>
 
@@ -211,7 +203,7 @@ co2_fuelsector
 dev.off()
 ```
 
-#### US State Map
+#### US State Map and state abbreviation
 ```{r tidy=TRUE}
 names(state.abb) <- state.name
 state.abbr <-data.frame(state.abb)
@@ -316,7 +308,7 @@ co_pl <- annotate_figure(co_le, bottom = text_grob("Log of per capita CO2 (metri
 ```
 
 
-#### Map of PVG: 1997, 2019, 2020 and 2021
+#### Map of state PVG: 1997, 2019, 2020 and 2021
 ```{r tidy=TRUE}
 pv_97 <- plot_usmap(data = state_97, values = "PVG", color = "grey")+ 
   scale_fill_gradientn(colours = c("red","white", "blue"), limits=c(-51.42, 38.01), breaks = seq(-50, 38, 12), 
@@ -366,7 +358,7 @@ pv_21 <- plot_usmap(data = state_21, values = "PVG", color = "grey")+
 
 </br>
 
-#### Combine Maps of PVG: 1997, 2019, 2020 and 2021
+#### Combine Maps of state PVG: 1997, 2019, 2020 and 2021
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 legend <- get_legend(pv_19)
           
@@ -461,7 +453,6 @@ splot <-ggarrange(s97, s19, s20, s21, labels = c("c", "", "", ""), vjust = 0, hj
                         ncol = 4, nrow = 1, legend = "none")
 splot <- annotate_figure(splot, bottom = text_grob("Partition voting gap (PVG)", size=8, vjust = -2))+
       theme(plot.margin = unit(c(5.5, 0, 5.5, 0), "pt"))
-splot
 ```
 
 #### All plots: maps and correlation
@@ -472,4 +463,48 @@ file.plot <- file.path(dir.plot, "co_pv.png")
 png(file.plot, height=7, width=7, units="in", bg= "white", res=300)
 co_pv
 dev.off()
+```
+
+#### Weighted mean per capita CO2 by HDD, CDD, income, price, and expenditure
+```{r tidy=TRUE}
+
+mean_party <- dat_p %>% group_by(Year, Party) %>% 
+            summarise(party_CO2 = weighted.mean(pc_CO2, pop_mi),
+            party_price = weighted.mean(price, pop_mi), 
+            party_expnd = weighted.mean(expend, pop_mi),
+            party_gdp = weighted.mean(pc_rgdp, pop_mi), 
+            party_PVG = weighted.mean(PVG, pop_mi))
+mean_HDD <- dat_p %>% group_by(Year, HDD) %>% 
+          summarise(HDD_CO2 = weighted.mean(pc_CO2, pop_mi),
+          HDD_price = weighted.mean(price, pop_mi), 
+          HDD_expnd = weighted.mean(expend, pop_mi),
+          HDD_gdp = weighted.mean(pc_rgdp, pop_mi), 
+          HDD_PVG = weighted.mean(PVG, pop_mi), n())
+                                                        
+mean_CDD <- dat_p %>% group_by(Year, CDD) %>% 
+        summarise(CDD_CO2 = weighted.mean(pc_CO2, pop_mi),
+        CDD_price = weighted.mean(price, pop_mi), 
+        CDD_expnd = weighted.mean(expend, pop_mi),
+        CDD_gdp = weighted.mean(pc_rgdp, pop_mi), 
+        CDD_PVG = weighted.mean(PVG, pop_mi), n())
+mean_HL <- do.call(bind_cols, lapply(list(mean_party, mean_HDD, mean_CDD), `[`, ))
+## output data
+file.output <- file.path(dir.outdata, "mean_HL.csv")
+write.table(mean_HL, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
+```
+
+#### Number of countries by HDD, CDD, income, price, geography and expenditure
+```{r tidy=TRUE}
+nparty <- dat_p %>% group_by(Year, Party) %>% summarise(n())
+nHDD <- dat_p %>% group_by(Year, HDD) %>% summarise(n())
+nCDD <- dat_p %>% group_by(Year, CDD) %>% summarise(n())
+nLCV <- dat_p %>% group_by(Year, HL_LCV) %>% summarise(n())
+nexp <- dat_p %>% group_by(Year, HL_Expend) %>% summarise(n())
+ngdp <- dat_p %>% group_by(Year, in_class) %>% summarise(n())
+ngeo <- dat_p %>% group_by(Year, Geography) %>% summarise(n())
+
+num_HL <- do.call(bind_cols, lapply(list(nparty, nHDD, nCDD, nLCV, nexp, ngdp, ngeo), `[`, ))
+## output data
+file.output <- file.path(dir.outdata, "num_HL.csv")
+write.table(num_HL, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
 ```

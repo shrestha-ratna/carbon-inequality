@@ -129,7 +129,7 @@ dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
 ## Plot
 pmld <-ggplot(dmld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) + 
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "Red and blue states", y = "")+
   theme(text=element_text(size=8))+
@@ -227,14 +227,14 @@ lmld$Weight <- factor(lmld$Weight, levels=c("Population weighted","Unweighted"))
 
 lmld <-ggplot(lmld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) +
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "High-low LCV score", y = "")+
   theme(text=element_text(size=8))+
   scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
   scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
   theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
-  theme(axis.text.y = element_blank())+
+  #theme(axis.text.y = element_blank())+
   theme(legend.title = element_blank())+
   theme(legend.direction = "horizontal") +
   theme(legend.position = "none", legend.margin = margin(t = -5)) +
@@ -323,14 +323,14 @@ emld$Weight <- factor(emld$Weight, levels=c("Population weighted","Unweighted"))
 ```{r fig.height = 3, fig.width = 7, fig.align = "center"}
 exmld <-ggplot(emld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) +
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "High-low energy expenditure", y = "")+
   theme(text=element_text(size=8))+
   scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
   scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
   theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
-  theme(axis.text.y = element_blank())+
+  #theme(axis.text.y = element_blank())+
   theme(legend.title = element_blank())+
   theme(legend.direction = "horizontal") +
   theme(legend.position = "none", legend.margin = margin(t = -5)) +
@@ -339,8 +339,7 @@ exmld <-ggplot(emld, aes(x=Year))+
   theme(legend.spacing.x = unit(0.3, "lines"))+
   theme(legend.spacing.y = unit(0.6, "lines"))+
   theme(legend.key.width = unit(0.6, 'cm'))+
-  theme(legend.key.height = unit(0.5, 'cm'))+
-  theme(legend.text = element_text(size=6))
+  theme(legend.key.height = unit(0.5, 'cm'))
 ```
 
 #### Plots by Party expenditure and LCV
@@ -349,7 +348,6 @@ exmld <-ggplot(emld, aes(x=Year))+
 mld_party_ex_lcv <- ggarrange(pmld, exmld, lmld, labels = c("a", "b", "c"), hjust = -2.0, 
                                 font.label = list(size = 8, color = "black", face = "bold"), 
                                 ncol = 3, nrow = 1, legend="none")
-mld_party_ex_lcv
 ```
 
 
@@ -427,7 +425,7 @@ dmld$Weight <- factor(dmld$Weight, levels=c("Population weighted","Unweighted"))
 ## Plot
 inmld <-ggplot(dmld, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) +
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "Rich and poor states", y = "")+
   theme(text=element_text(size=8))+
@@ -443,7 +441,7 @@ inmld <-ggplot(dmld, aes(x=Year))+
   theme(legend.spacing.y = unit(0.6, "lines"))+
   theme(legend.key.width = unit(0.6, 'cm'))+
   theme(legend.key.height = unit(0.5, 'cm'))+
-  theme(legend.text = element_text(size=6))
+  theme(legend.text = element_text(size=8))
 ```
 
 #### Decomposition by Geography
@@ -524,7 +522,7 @@ dgeom$Weight <- factor(dgeom$Weight, levels=c("Population Weighted","Unweighted"
 ```{r fig.height = 3, fig.width = 3, fig.align = "center"}
 mldgeom <-ggplot(dgeom, aes(x=Year))+
   geom_line(aes(y = value, color = Group, linetype = Weight), size=0.7) +
-  scale_colour_manual(values=c("black", "green","blue")) +  
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) +
   scale_linetype_manual(values=c("solid","dotted")) +
   labs(x = "Coastal-non-coastal states", y = "")+
   theme(text=element_text(size=8))+
@@ -542,8 +540,8 @@ mldgeom <-ggplot(dgeom, aes(x=Year))+
   guides(linetype = guide_legend(order = 1),col = guide_legend(order = 2))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=6))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+  theme(legend.text = element_text(size=8))
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
 ```
 
 #### Decomposition by Heating Degree Days
@@ -597,7 +595,6 @@ df_unheat <- cbind(Year=as.numeric(rownames(df_unheat)), df_unheat)
 rownames(df_unheat) <- NULL
 df_unheat <- df_unheat[order(df_unheat$Year, decreasing = FALSE),]
 un_heatm <- df_unheat %>% rename(untotal=mld_total, unwithin=mld_within, unbetween=mld_between)
-
 ```
 
 
@@ -630,7 +627,7 @@ mldheat<-ggplot(dheat, aes(x=Year))+
   scale_y_continuous(limits = c(0, 0.22), breaks = seq(0, 0.22, 0.02)) +
   scale_x_continuous(breaks=c(1997, 2000, 2003, 2006, 2009, 2012, 2015, 2019, 2021)) +
   theme(axis.text.x = element_text(angle = 45, vjust=0.5))+
-  theme(axis.text.y = element_blank())+
+  #theme(axis.text.y = element_blank())+
   theme(legend.title = element_blank())+
   theme(legend.direction = "horizontal") +
   theme(legend.position = "bottom", legend.margin=margin(t= 1)) +
@@ -640,8 +637,9 @@ mldheat<-ggplot(dheat, aes(x=Year))+
   theme(legend.spacing.y = unit(0.6, "lines"))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=7))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+  theme(legend.text = element_text(size=8))+
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF")) 
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
 ```
 
 #### Decomposition by Cooling Degree Days
@@ -737,8 +735,9 @@ mldcool<-ggplot(dcool, aes(x=Year))+
   theme(legend.spacing.y = unit(0.6, "lines"))+
   theme(legend.key.width = unit(0.35, 'cm'))+
   theme(legend.key.height = unit(0.4, 'cm'))+
-  theme(legend.text = element_text(size=7))+
-  scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
+  theme(legend.text = element_text(size=8))+
+  scale_colour_manual(values=c("black", "#4DAF4A","#8494FF"))
+  #scale_color_manual(labels = c("Overall", "Within group", "Between group"), values=c("black", "green","blue"))
 ```
 
 #### Decomposition Plot by Income, Geography and Heating/Cooling Degree Days
@@ -747,20 +746,66 @@ mldcool<-ggplot(dcool, aes(x=Year))+
 mld_in_geo_days <-ggarrange(inmld, mldgeom, mldheat, mldcool, labels = c("d", "e", "f", "g"), hjust = -2.0, 
                                 font.label = list(size = 8, color = "black", face = "bold"), 
                                 ncol = 4, nrow = 1, common.legend = TRUE, legend ="bottom")
-mld_in_geo_days
 ```
 
 #### All MLD Decomposition Plots
-```{r fig.height = 6, fig.width = 7, fig.align = "center"}
+```{r fig.height = 4.5, fig.width = 7, fig.align = "center"}
 
 decomp_MLD <- ggarrange(mld_party_ex_lcv, mld_in_geo_days, nrow=2)
-decomp_MLD <- annotate_figure(decomp_MLD, left = text_grob("Decomposition of per capita CO2 Gini", rot=90, size=8))
-
-decomp_MLD
+decomp_MLD <- annotate_figure(decomp_MLD, left = text_grob("Decomposition of per capita CO2 MLD", rot=90, size=9))
 
 ## plot file output
 file.plot <- file.path(dir.plot, "mld_decomp.png")
-png(file.plot, height=6, width=7, units="in", bg= "white", res=300)
+png(file.plot, height=4.5, width=7, units="in", bg= "white", res=300)
 decomp_MLD
 dev.off()
+```
+
+#### write mld by party
+```{r}
+file.output <- file.path(dir.outdata, "decomp_pmld.csv")
+write.table(decomp_pmld, file.output, sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
+```
+
+#### mld calculation by hand (party)
+```{r}
+dat_2021 <- dat_p %>% filter(Year==2021)
+mld_party <- dat_2021 %>% group_by(Party) %>% summarise(mld_party_21 = mld.wtd(pc_CO2, pop_mi))
+```
+
+#### mld calculation by hand (HDD and overall)
+```{r}
+mld_HDD <- dat_2021 %>% group_by(HDD) %>% summarise(mld_HDD_21 = mld.wtd(pc_CO2, pop_mi))
+mld_CDD <- dat_2021 %>% group_by(CDD) %>% summarise(mld_CDD_21 = mld.wtd(pc_CO2, pop_mi))
+  
+mld_21 <- dat_2021 %>% summarise(mld_21 = mld.wtd(pc_CO2, pop_mi))
+```
+#### mld calculation by hand (CDD)
+```{r}
+mld_CDD <- dat_2021 %>% group_by(CDD) %>% summarise(mld_CDD_21 = mld.wtd(pc_CO2, pop_mi))
+
+```
+
+#### Gini calculation by hand (party)
+```{r}
+gini_party21 <- dat_2021 %>% group_by(Party) %>% summarise(gini_party_21 = gini.wtd(pc_CO2, pop_mi))
+```
+
+#### Gini calculation by hand (HDD)
+```{r}
+gini_HDD <- dat_2021 %>% group_by(HDD) %>% summarise(gini_HDD_21 = gini.wtd(pc_CO2, pop_mi))
+gini_CDD <- dat_2021 %>% group_by(CDD) %>% summarise(gini_CDD_21 = gini.wtd(pc_CO2, pop_mi))
+gini_21 <- dat_2021 %>% summarise(gini_21 = gini.wtd(pc_CO2, pop_mi))
+```
+
+#### mean by group (Party)
+```{r}
+pmean_21 <- dat_2021 %>% group_by(Party) %>% summarise(mean_party_21 = weighted.mean(pc_CO2, pop_mi))
+mean_21 <- dat_2021 %>% summarise(mean_21 = weighted.mean(pc_CO2, pop_mi))
+```
+
+#### mean by group (HDD and CDD)
+```{r}
+HDDmean_21 <- dat_2021 %>% group_by(HDD) %>% summarise(mean_HDD_21 = weighted.mean(pc_CO2, pop_mi))
+CDDmean_21 <- dat_2021 %>% group_by(CDD) %>% summarise(mean_CDD_21 = weighted.mean(pc_CO2, pop_mi))
 ```

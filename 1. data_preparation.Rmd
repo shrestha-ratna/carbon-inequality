@@ -47,6 +47,7 @@ file.senate <- file.path(dir.data, "senate.csv")
 file.cdd <- file.path(dir.data, "cdd_2021.csv")
 file.hdd <- file.path(dir.data, "hdd_2021.csv")
 file.expend <- file.path(dir.data, "energy_expenditure_pc_2021.csv")
+file.price <- file.path(dir.data, "energy_price_2021.csv")
 ```
 
 
@@ -63,13 +64,17 @@ dat_state_pvg<-data_pvg %>% mutate(X2021=PVG_2020,X2020=PVG_2016,X2019=PVG_2016,
                             X2000=PVG_1996,X1999 =PVG_1996,X1998=PVG_1996,X1997=PVG_1996) 
 dat_state_pvg<-dat_state_pvg %>% subset(select = -c(2:8))
 dat_pvg<- dat_state_pvg %>% gather(Year, PVG, -State)
+
 ```
 
 #### Party color determination of each state in each presidential election cycle
 ##### PVG = Democratic candidate's votes - Republican candidate's votes 
 ```{r tidy=TRUE}
 dat_party <- dat_pvg %>% mutate(Party=ifelse(PVG >=0, "Dem", "Rep"))
-dat_party <- dat_party %>% dplyr::select(State, Year, PVG, Party)
+
+### Classification into 3 groups: Red, Blue and Neutral/Swing
+dat_party <- dat_party %>% mutate(Party_3=ifelse(PVG >= 5, "Dem", ifelse(PVG <= -5, "Rep", "Ntl")))
+dat_party <- dat_party %>% dplyr::select(State, Year, PVG, Party, Party_3)
 dat_party$Party<-as.factor(dat_party$Party)
 ```
 
@@ -259,6 +264,21 @@ dat_expend <- merge(state_a, dat_expend, by = "State.Abb")
 dat_expend <- dat_expend %>% dplyr::select(-State.Abb)
 ```
 
+#### Energy price(dollar million BTU)
+##### https://www.eia.gov/state/seds/seds-data-complete.php?sid=US
+```{r tidy=TRUE}
+dprice <-read.csv(file.price, header=T, skip=2, stringsAsFactors = FALSE)
+dprice <- dprice %>% dplyr::select(State.Abb, X1997:X2021)
+dprice <- dprice %>% gather(Year, price, X1997:X2021)
+dprice$price <- as.numeric(dprice$price)
+
+## mean calculations
+dprice_av <- dprice %>% group_by(Year) %>% summarise(m_price = mean(price)) 
+dat_price <- merge(dprice, dprice_av, by="Year")
+dat_price <- merge(state_a, dat_price, by = "State.Abb")
+dat_price <- dat_price %>% dplyr::select(-State.Abb)
+```
+
 #### Order Data
 ```{r tidy=TRUE}
 pc_CO2_total <- pc_CO2_total[order(pc_CO2_total$State, pc_CO2_total$Year),]
@@ -267,11 +287,12 @@ pc_gdp <- pc_gdp[order(pc_gdp$State, pc_gdp$Year),]
 dat_lcv <-dat_lcv[order(dat_lcv$State, dat_lcv$Year),]
 dat_expend <- dat_expend[order(dat_expend$State, dat_expend$Year),]
 dg_days <- dg_days[order(dg_days$State, dg_days$Year),]
+dat_price <- dat_price[order(dat_price$State, dat_price$Year),]
 ```
 
 #### Merge data.frames
 ```{r tidy=TRUE}
-dat_all <- list(pc_gdp, pc_CO2_total, dat_party, dg_days, data_lcv, dat_expend) %>% reduce(left_join, by = c("State", "Year"))
+dat_all <- list(pc_gdp, pc_CO2_total, dat_party, dg_days, data_lcv, dat_expend, dat_price) %>% reduce(left_join, by = c("State", "Year"))
 
 dat_all$Year <- stringr::str_replace(dat_all$Year, "X", "")
 
@@ -285,7 +306,9 @@ dat <- dat %>% mutate(in_class = ifelse(pc_rgdp >= m_gdp, "Rich", "Poor")) %>%
   mutate(HDD = ifelse(hdays >= m_hdd, "High_hdays", "Low_hdays")) %>% 
   mutate(CDD = ifelse(cdays >= m_cdd, "High_cdays", "Low_cdays")) %>%
   mutate(HL_Expend = ifelse(expend >= m_expend, "High_Exp", "Low_ExP")) %>%
-  mutate(HL_LCV=ifelse(lcv >= m_lcv, "High_LCV", "Low_LCV"))
+  mutate(HL_LCV=ifelse(lcv >= m_lcv, "High_LCV", "Low_LCV")) %>%
+  mutate(HL_price=ifelse(price >= m_price, "High_price", "Low_price"))
+
 ```
 
 #### View Data
